@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 86 / 102 sub-tasks complete
+> **Progress:** 90 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -587,21 +587,21 @@ tests/profile/test_profile_files.py                (modify)
 
 **Sub-tasks:**
 
-- [ ] **5.2.1** — Write each skill with Hermes frontmatter (`name`, `description`, `version`, `metadata.hermes.category: trading`, `requires_toolsets` naming the trader_broker MCP toolset) and a body that lists steps and the trader-broker tools to call (by their MCP names): `market-regime` (SPY/QQQ trend and breadth; decide how hard to press today), `candidate-screen` (setups from movers, news and the watchlist), `trade-analysis` (technical, fundamental and news case; next earnings date found by web search and stated in the thesis; write thesis and invalidation; call `propose_buy` without a share count), `position-review` (re-check open trades against invalidation; `tighten_stop`; `sell`/`close_position`), `journal-review` (`get_journal(status="pending_lessons")`, compare with SPY, save lessons to memory, `journal_note`).
-- [ ] **5.2.2** — Write `profile/cron/jobs.yaml` with five jobs, timezone `America/New_York`: `premarket-plan` 09:00 Mon–Fri, `entries` 09:45 Mon–Fri, `midday` 12:30 Mon–Fri, `close-review` 15:45 Mon–Fri, `weekly-report` 16:30 Fri. Each job has name, cron schedule, skills, a self-contained prompt naming its skills, `grace_minutes` (5 for entries, midday and close-review; 30 for the others), and deliver targets from `${TRADER_DISCORD_TARGET}` and `${TRADER_TELEGRAM_TARGET}`.
-- [ ] **5.2.3** — Give the four market-day jobs the pre-run script `scripts/market-open-gate.sh`; `weekly-report` runs without it. The `close-review` prompt calls `get_risk_status` (so unfilled entries are cancelled before the close), runs exits, settles the journal and posts the daily report. The `weekly-report` prompt runs the go-live scorecard comparison with SPY.
-- [ ] **5.2.4** — Extend `test_profile_files.py`: each skill's frontmatter parses and has every required key with category `trading` and the trader_broker toolset; each skill body names only tools that exist in the server tool set; `jobs.yaml` has exactly the five job names; each schedule is a valid 5-field cron with the stated time and days; grace values match; the gate script is set on exactly the four market-day jobs; every prompt names at least one of the five skills; deliver targets use the two env placeholders.
+- [x] **5.2.1** — Write each skill with Hermes frontmatter (`name`, `description`, `version`, `metadata.hermes.category: trading`, `requires_toolsets` naming the trader_broker MCP toolset) and a body that lists steps and the trader-broker tools to call (by their MCP names): `market-regime` (SPY/QQQ trend and breadth; decide how hard to press today), `candidate-screen` (setups from movers, news and the watchlist), `trade-analysis` (technical, fundamental and news case; next earnings date found by web search and stated in the thesis; write thesis and invalidation; call `propose_buy` without a share count), `position-review` (re-check open trades against invalidation; `tighten_stop`; `sell`/`close_position`), `journal-review` (`get_journal(status="pending_lessons")`, compare with SPY, save lessons to memory, `journal_note`).
+- [x] **5.2.2** — Write `profile/cron/jobs.yaml` with five jobs, timezone `America/New_York`: `premarket-plan` 09:00 Mon–Fri, `entries` 09:45 Mon–Fri, `midday` 12:30 Mon–Fri, `close-review` 15:45 Mon–Fri, `weekly-report` 16:30 Fri. Each job has name, cron schedule, skills, a self-contained prompt naming its skills, `grace_minutes` (5 for entries, midday and close-review; 30 for the others), and deliver targets from `${TRADER_DISCORD_TARGET}` and `${TRADER_TELEGRAM_TARGET}`.
+- [x] **5.2.3** — Give the four market-day jobs the pre-run script `scripts/market-open-gate.sh`; `weekly-report` runs without it. The `close-review` prompt calls `get_risk_status` (so unfilled entries are cancelled before the close), runs exits, settles the journal and posts the daily report. The `weekly-report` prompt runs the go-live scorecard comparison with SPY.
+- [x] **5.2.4** — Extend `test_profile_files.py`: each skill's frontmatter parses and has every required key with category `trading` and the trader_broker toolset; each skill body names only tools that exist in the server tool set; `jobs.yaml` has exactly the five job names; each schedule is a valid 5-field cron with the stated time and days; grace values match; the gate script is set on exactly the four market-day jobs; every prompt names at least one of the five skills; deliver targets use the two env placeholders.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `uv run pytest tests/profile` passes with every check in 5.2.4.
-- [ ] **Requirements:**
-    - [ ] "Five skills with Hermes frontmatter (`name`, `description`, `version`, `metadata.hermes.category: trading`, `requires_toolsets` naming the trader_broker MCP toolset), each listing steps and which tools to call."
-    - [ ] "`cron/jobs.yaml`: five jobs (premarket-plan 09:00, entries 09:45, midday 12:30, close-review 15:45 Mon–Fri; weekly-report 16:30 Fri), timezone America/New_York, `grace_minutes` 5 (entries/midday/close) and 30 (others), pre-run script `scripts/market-open-gate.sh` for market-hours jobs, deliver targets from env …, self-contained prompts naming skills."
-    - [ ] "The `trade-analysis` skill must find the next earnings date by web search and state it in the thesis."
-    - [ ] "the close-review job calls `get_risk_status` so every unfilled entry is cancelled before the close".
-- [ ] **Verify:** Read `trade-analysis/SKILL.md` and confirm it never asks the agent for a share count and requires the earnings date in the thesis.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `uv run pytest tests/profile` passes with every check in 5.2.4.
+- [x] **Requirements:**
+    - [x] "Five skills with Hermes frontmatter (`name`, `description`, `version`, `metadata.hermes.category: trading`, `requires_toolsets` naming the trader_broker MCP toolset), each listing steps and which tools to call."
+    - [x] "`cron/jobs.yaml`: five jobs (premarket-plan 09:00, entries 09:45, midday 12:30, close-review 15:45 Mon–Fri; weekly-report 16:30 Fri), timezone America/New_York, `grace_minutes` 5 (entries/midday/close) and 30 (others), pre-run script `scripts/market-open-gate.sh` for market-hours jobs, deliver targets from env …, self-contained prompts naming skills."
+    - [x] "The `trade-analysis` skill must find the next earnings date by web search and state it in the thesis."
+    - [x] "the close-review job calls `get_risk_status` so every unfilled entry is cancelled before the close".
+- [x] **Verify:** Read `trade-analysis/SKILL.md` and confirm it never asks the agent for a share count and requires the earnings date in the thesis.
 
 ---
 
