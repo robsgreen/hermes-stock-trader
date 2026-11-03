@@ -24,3 +24,4 @@ PR: (none)
 - 2026-11-03 13:15 - Research in: rules/risk, Alpaca MCP, Hermes profiles; awaiting trading-agents survey
 - 2026-11-03 13:15 - Research in: trading-agents survey (TradingAgents pattern, tradermonty skills, AlpacaTradingAgent caps; live LLM results weak)
 - 2026-11-03 13:17 - User decision Q1: A — paper trading first, live only after passing a bar set in the plan
+- 2026-11-03 13:20 - User decision Q2: A — swing trading, ~3-5 scheduled runs/day, free IEX data
