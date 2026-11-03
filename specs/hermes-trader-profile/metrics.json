@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0",
+  "eventsVersion": "1.0",
+  "harness": "sdlc",
+  "harnessVersion": "0.1.0",
+  "rubricVersion": "1.0",
+  "specName": "hermes-trader-profile",
+  "generatedAt": "2026-11-03T17:25:49Z",
+  "specStatus": "planning",
+  "velocity": {
+    "wallClockMinutes": 253,
+    "timeToPrMinutes": null,
+    "sessionCount": 1,
+    "phaseDurationsMinutes": {
+      "planning": 253,
+      "taskGeneration": 0,
+      "implementation": 0,
+      "testing": 0,
+      "review": 0,
+      "houseKeeping": 0,
+      "postMortem": 0
+    }
+  },
+  "lifecycle": {
+    "furthestPhase": "Planning",
+    "stalled": false
+  },
+  "throughput": {
+    "subTasksTotal": 0,
+    "subTasksCompleted": 0,
+    "completionRatio": 0
+  },
+  "autonomy": {
+    "hardGateInterventions": 0,
+    "resumeCount": 0,
+    "reviewFixCycles": 0,
+    "subAgentDispatches": 7,
+    "postMortemActionItems": 0,
+    "autonomousCompletion": false,
+    "postPrRevisionCycles": 0
+  },
+  "quality": {
+    "reviewFindings": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "crossLensConvergence": 0,
+    "significantSpecDeviations": 0,
+    "planDrift": {
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "postPanelReview": {
+      "runs": 0,
+      "firstKept": null,
+      "firstRefuted": null,
+      "firstOutOfScope": null
+    }
+  },
+  "cost": {
+    "filesCreated": 0,
+    "filesModified": 0,
+    "filesDeleted": 0,
+    "linesAdded": 0,
+    "linesRemoved": 0
+  },
+  "scopeDelta": {
+    "plannedFiles": 39,
+    "actualFiles": 0,
+    "deltaFiles": -39
+  },
+  "pr": {
+    "prIds": [],
+    "prUrls": []
+  },
+  "parseHealth": {
+    "eventsValid": 10,
+    "eventsMalformed": 0,
+    "eventsUnknownType": 0,
+    "eventsReviewRounds": 0,
+    "eventsJsonl": true,
+    "statusMd": true,
+    "taskSpec": false,
+    "reviewMd": false,
+    "driftSummaryBlock": false,
+    "masterPlanMd": true,
+    "gitStats": true
+  },
+  "tokensUsd": null
+}

@@ -8,7 +8,7 @@ PR: (none)
 ## Checklist
 
 - [x] **Planning**
-- [ ] **Task Generation**
+- [x] **Task Generation**
 - [ ] **Implementation**
 - [ ] **Testing**
 - [ ] **Documentation**
@@ -33,3 +33,5 @@ PR: (none)
 - 2026-11-03 14:53 - Plan review: 21 findings, 21 incorporated, 0 rebutted (M5 resolved by dropping proposer fallback)
 - 2026-11-03 17:25 - User confirmed master plan (profile renamed to stock-trader)
 - 2026-11-03 17:25 - Phase → Task Generation
+- 2026-11-03 17:33 - Task Generation: 18 tasks / 102 sub-tasks, 37 acceptance items
+- 2026-11-03 17:33 - Phase → Implementation
