@@ -44,3 +44,4 @@ PR: (none)
 - 2026-11-03 17:57 - Task 2.2 done (133f7b2); paper smoke unrun (no keys) — user must run before paper period
 - 2026-11-03 17:58 - Task 3.3 done (0d95873)
 - 2026-11-03 18:02 - Task 3.1 done (5c8d6eb); ticked 2.2, 3.3, 3.1
+- 2026-11-03 18:08 - Task 3.2 done (0e8ee7f)

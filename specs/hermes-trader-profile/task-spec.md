@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 51 / 102 sub-tasks complete
+> **Progress:** 57 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -310,24 +310,24 @@ tests/unit/test_cancel_entry.py     (create)
 
 **Sub-tasks:**
 
-- [ ] **3.2.1** — Write `sell(symbol, qty)`: reject `qty < 1` and `qty` greater than held qty with `exceeds_position`. Record the current stop price. Cancel the symbol's open stop and take-profit legs and wait for cancel confirmation (bounded wait; on timeout return an error and submit nothing). Submit a market `day` sell with a `tb-` client id recorded first. For remaining shares, place a GTC stop at the previous stop price and record it; when there was no previous stop, use the housekeeping stop rule from 3.1.4.
-- [ ] **3.2.2** — Write `close_position(symbol)` as a sell of the full held qty.
-- [ ] **3.2.3** — Write `tighten_stop(symbol, new_stop)`: reject with a reason when the symbol has no active stop, when `new_stop` is not higher than the current stop, or when `new_stop` is at or above the current bid; otherwise replace each active stop for the symbol and update the journal stop.
-- [ ] **3.2.4** — Write `cancel_entry_order(order_id)`: cancel only an open buy entry with `filled_qty == 0` and client id prefix `tb-`; reject stop legs, take-profit legs, partly filled parents and foreign orders with `not_cancellable`.
-- [ ] **3.2.5** — Write `test_service_sell.py`: full close; partial sell leaves remaining shares re-protected at the same stop; sell with no legs; `exceeds_position`; selling without first cancelling legs is rejected by `FakeBroker` (reserved-qty rule) so the service path must cancel first; sell succeeds while kill switch is set, daily halt is set, and state is missing.
-- [ ] **3.2.6** — Write `test_tighten_stop.py`: 90 → 88 rejected; new stop ≥ bid rejected; no stop rejected; 90 → 95 accepted and journal stop updated; accepted while kill switch is set. Write `test_cancel_entry.py`: own unfilled entry cancelled; stop leg, take-profit leg, partly filled parent and foreign order each rejected `not_cancellable`.
+- [x] **3.2.1** — Write `sell(symbol, qty)`: reject `qty < 1` and `qty` greater than held qty with `exceeds_position`. Record the current stop price. Cancel the symbol's open stop and take-profit legs and wait for cancel confirmation (bounded wait; on timeout return an error and submit nothing). Submit a market `day` sell with a `tb-` client id recorded first. For remaining shares, place a GTC stop at the previous stop price and record it; when there was no previous stop, use the housekeeping stop rule from 3.1.4.
+- [x] **3.2.2** — Write `close_position(symbol)` as a sell of the full held qty.
+- [x] **3.2.3** — Write `tighten_stop(symbol, new_stop)`: reject with a reason when the symbol has no active stop, when `new_stop` is not higher than the current stop, or when `new_stop` is at or above the current bid; otherwise replace each active stop for the symbol and update the journal stop.
+- [x] **3.2.4** — Write `cancel_entry_order(order_id)`: cancel only an open buy entry with `filled_qty == 0` and client id prefix `tb-`; reject stop legs, take-profit legs, partly filled parents and foreign orders with `not_cancellable`.
+- [x] **3.2.5** — Write `test_service_sell.py`: full close; partial sell leaves remaining shares re-protected at the same stop; sell with no legs; `exceeds_position`; selling without first cancelling legs is rejected by `FakeBroker` (reserved-qty rule) so the service path must cancel first; sell succeeds while kill switch is set, daily halt is set, and state is missing.
+- [x] **3.2.6** — Write `test_tighten_stop.py`: 90 → 88 rejected; new stop ≥ bid rejected; no stop rejected; 90 → 95 accepted and journal stop updated; accepted while kill switch is set. Write `test_cancel_entry.py`: own unfilled entry cancelled; stop leg, take-profit leg, partly filled parent and foreign order each rejected `not_cancellable`.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_service_sell.py`, `test_tighten_stop.py`, `test_cancel_entry.py` pass with every case in 3.2.5 and 3.2.6.
-- [ ] **Requirements:**
-    - [ ] "Make `sell(symbol, qty)` and `close_position(symbol)` work while bracket legs reserve the shares" — cancel legs, market `day` sell, re-protect remaining shares at the previous stop.
-    - [ ] "Reject `qty` > held qty with `exceeds_position` (no shorts)."
-    - [ ] "`cancel_entry_order(order_id)` cancels only an open, unfilled (filled_qty == 0) buy entry order placed by trader-broker … reject … with `not_cancellable`."
-    - [ ] "`tighten_stop(symbol, new_stop)` only raises an existing stop and keeps it below the current bid."
-    - [ ] "Halts never block `sell`, `close_position`, `tighten_stop`, `cancel_entry_order`."
-- [ ] **Verify:** `grep -n "kill_switch\|daily_halt\|state_unavailable" src/trader_broker/service.py` shows no check inside the four exit methods.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_service_sell.py`, `test_tighten_stop.py`, `test_cancel_entry.py` pass with every case in 3.2.5 and 3.2.6.
+- [x] **Requirements:**
+    - [x] "Make `sell(symbol, qty)` and `close_position(symbol)` work while bracket legs reserve the shares" — cancel legs, market `day` sell, re-protect remaining shares at the previous stop.
+    - [x] "Reject `qty` > held qty with `exceeds_position` (no shorts)."
+    - [x] "`cancel_entry_order(order_id)` cancels only an open, unfilled (filled_qty == 0) buy entry order placed by trader-broker … reject … with `not_cancellable`."
+    - [x] "`tighten_stop(symbol, new_stop)` only raises an existing stop and keeps it below the current bid."
+    - [x] "Halts never block `sell`, `close_position`, `tighten_stop`, `cancel_entry_order`."
+- [x] **Verify:** `grep -n "kill_switch\|daily_halt\|state_unavailable" src/trader_broker/service.py` shows no check inside the four exit methods.
 
 ---
 
