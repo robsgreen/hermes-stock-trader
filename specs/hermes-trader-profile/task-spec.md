@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 90 / 102 sub-tasks complete
+> **Progress:** 95 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -622,21 +622,21 @@ tests/profile/test_profile_files.py   (modify)
 
 **Sub-tasks:**
 
-- [ ] **5.3.1** — Write `scripts/market-open-gate.sh` (bash, `set -euo pipefail`): run `uv run --directory <repo dir> trader-broker market-open-gate` with the profile's env, and pass its stdout through so the JSON stays the last line. If the command itself cannot start, print `{"wakeAgent": true}` so a broken gate never silently skips a run.
-- [ ] **5.3.2** — Write `scripts/install-profile.sh` (bash, `set -euo pipefail`, idempotent, `--dry-run` and `--enable-jobs` flags): check `hermes`, `uv` and `git` are installed; run `uv sync`; create profile `stock-trader` with `hermes profile create stock-trader --description ...` only if absent; copy `config.yaml` (with `<INSTALL_DIR>` filled in), `SOUL.md` and `skills/` into `~/.hermes/profiles/stock-trader/`, backing up any existing file with a timestamp suffix; create `.env` from `.env.example` only if absent (never overwrite).
-- [ ] **5.3.3** — In the installer, read `profile/cron/jobs.yaml` (via `uv run python` with PyYAML) and, for each job whose name does not already exist in `hermes -p stock-trader cron` listings, run `hermes -p stock-trader cron create ...` with schedule, `--timezone`, `--skill`, `--name`, `--grace-minutes`, deliver targets, the gate script for gated jobs, and `--paused` unless `--enable-jobs`. Confirm the exact `hermes cron create` flags against the Hermes cron docs.
-- [ ] **5.3.4** — At the end, print the `profile_routes` snippet from `profile_routes.example.yaml` and the next steps (fill `.env`, run `trader-broker init-state`, run `trader-broker smoke-test`, apply the routes to the default profile by hand, enable jobs). The installer never writes to the default profile (`~/.hermes/config.yaml`).
-- [ ] **5.3.5** — Extend `test_profile_files.py`: both scripts pass `bash -n`, start with `set -euo pipefail` and are executable; with stub `hermes` and `uv` commands on `PATH` and a temp `HOME`, `install-profile.sh --dry-run` exits 0, prints the planned commands and writes no files; a normal run against the stubs creates the profile files, creates `.env` once, and a second run does not overwrite `.env` or create duplicate jobs; jobs are created with `--paused` by default; no run writes `~/.hermes/config.yaml`. With a stub `uv` that prints `{"wakeAgent": false}`, `market-open-gate.sh` prints it as the last line.
+- [x] **5.3.1** — Write `scripts/market-open-gate.sh` (bash, `set -euo pipefail`): run `uv run --directory <repo dir> trader-broker market-open-gate` with the profile's env, and pass its stdout through so the JSON stays the last line. If the command itself cannot start, print `{"wakeAgent": true}` so a broken gate never silently skips a run.
+- [x] **5.3.2** — Write `scripts/install-profile.sh` (bash, `set -euo pipefail`, idempotent, `--dry-run` and `--enable-jobs` flags): check `hermes`, `uv` and `git` are installed; run `uv sync`; create profile `stock-trader` with `hermes profile create stock-trader --description ...` only if absent; copy `config.yaml` (with `<INSTALL_DIR>` filled in), `SOUL.md` and `skills/` into `~/.hermes/profiles/stock-trader/`, backing up any existing file with a timestamp suffix; create `.env` from `.env.example` only if absent (never overwrite).
+- [x] **5.3.3** — In the installer, read `profile/cron/jobs.yaml` (via `uv run python` with PyYAML) and, for each job whose name does not already exist in `hermes -p stock-trader cron` listings, run `hermes -p stock-trader cron create ...` with schedule, `--timezone`, `--skill`, `--name`, `--grace-minutes`, deliver targets, the gate script for gated jobs, and `--paused` unless `--enable-jobs`. Confirm the exact `hermes cron create` flags against the Hermes cron docs.
+- [x] **5.3.4** — At the end, print the `profile_routes` snippet from `profile_routes.example.yaml` and the next steps (fill `.env`, run `trader-broker init-state`, run `trader-broker smoke-test`, apply the routes to the default profile by hand, enable jobs). The installer never writes to the default profile (`~/.hermes/config.yaml`).
+- [x] **5.3.5** — Extend `test_profile_files.py`: both scripts pass `bash -n`, start with `set -euo pipefail` and are executable; with stub `hermes` and `uv` commands on `PATH` and a temp `HOME`, `install-profile.sh --dry-run` exits 0, prints the planned commands and writes no files; a normal run against the stubs creates the profile files, creates `.env` once, and a second run does not overwrite `.env` or create duplicate jobs; jobs are created with `--paused` by default; no run writes `~/.hermes/config.yaml`. With a stub `uv` that prints `{"wakeAgent": false}`, `market-open-gate.sh` prints it as the last line.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `uv run pytest tests/profile` passes with every check in 5.3.5.
-- [ ] **Requirements:**
-    - [ ] "`scripts/install-profile.sh` (bash, `set -euo pipefail`, idempotent): check `hermes`, `uv`, `git`; `uv sync`; create profile `stock-trader` if absent …; copy config/SOUL/skills … (back up existing files with timestamp); create `.env` from `.env.example` if absent (never overwrite); create cron jobs … only if a job with that name does not exist, created `--paused` unless `--enable-jobs`; print the profile_routes snippet and next steps; never edit the default profile; support `--dry-run`."
-    - [ ] "`scripts/market-open-gate.sh` — cron pre-run gate wrapper calling `trader-broker market-open-gate`".
-    - [ ] Off-limits: "The user's default Hermes profile (~/.hermes/config.yaml) — installer only prints the profile_routes snippet".
-- [ ] **Verify:** `grep -n "\.hermes/config.yaml" scripts/install-profile.sh` shows no write (only comments or printed text); `bash scripts/install-profile.sh --dry-run` with stubs on `PATH` exits 0.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `uv run pytest tests/profile` passes with every check in 5.3.5.
+- [x] **Requirements:**
+    - [x] "`scripts/install-profile.sh` (bash, `set -euo pipefail`, idempotent): check `hermes`, `uv`, `git`; `uv sync`; create profile `stock-trader` if absent …; copy config/SOUL/skills … (back up existing files with timestamp); create `.env` from `.env.example` if absent (never overwrite); create cron jobs … only if a job with that name does not exist, created `--paused` unless `--enable-jobs`; print the profile_routes snippet and next steps; never edit the default profile; support `--dry-run`."
+    - [x] "`scripts/market-open-gate.sh` — cron pre-run gate wrapper calling `trader-broker market-open-gate`".
+    - [x] Off-limits: "The user's default Hermes profile (~/.hermes/config.yaml) — installer only prints the profile_routes snippet".
+- [x] **Verify:** `grep -n "\.hermes/config.yaml" scripts/install-profile.sh` shows no write (only comments or printed text); `bash scripts/install-profile.sh --dry-run` with stubs on `PATH` exits 0.
 
 ---
 
