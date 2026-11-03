@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 32 / 102 sub-tasks complete
+> **Progress:** 51 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -236,19 +236,19 @@ tests/smoke/test_alpaca_paper.py      (create)
 
 **Sub-tasks:**
 
-- [ ] **2.2.1** — Create `cli.py` with `main()` and an argparse subcommand structure. Add `smoke-test [--symbol SYMBOL]` (default a liquid symbol priced ≥ $5): it refuses to run unless mode is `paper`, then runs the smoke steps and prints PASS/FAIL per step; exit code 0 only when all pass.
-- [ ] **2.2.2** — Write the smoke steps against the `Broker` Protocol: submit a 1-share bracket buy with a limit far below market (will not fill) and valid stop and target; confirm Alpaca accepted all prices; confirm `get_order_by_client_id` finds it; cancel it and confirm the cancel; fetch an IEX quote; fetch SIP-history daily bars (at least 20 bars).
-- [ ] **2.2.3** — Write `tests/smoke/test_alpaca_paper.py` marked `@pytest.mark.paper`, skipped unless `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` are set and mode is `paper`; it calls the same smoke steps and asserts each one.
-- [ ] **2.2.4** — Make the smoke steps always cancel the test order in a `finally` path, even when a later assertion fails.
+- [x] **2.2.1** — Create `cli.py` with `main()` and an argparse subcommand structure. Add `smoke-test [--symbol SYMBOL]` (default a liquid symbol priced ≥ $5): it refuses to run unless mode is `paper`, then runs the smoke steps and prints PASS/FAIL per step; exit code 0 only when all pass.
+- [x] **2.2.2** — Write the smoke steps against the `Broker` Protocol: submit a 1-share bracket buy with a limit far below market (will not fill) and valid stop and target; confirm Alpaca accepted all prices; confirm `get_order_by_client_id` finds it; cancel it and confirm the cancel; fetch an IEX quote; fetch SIP-history daily bars (at least 20 bars).
+- [x] **2.2.3** — Write `tests/smoke/test_alpaca_paper.py` marked `@pytest.mark.paper`, skipped unless `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` are set and mode is `paper`; it calls the same smoke steps and asserts each one.
+- [x] **2.2.4** — Make the smoke steps always cancel the test order in a `finally` path, even when a later assertion fails.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `uv run pytest -m "not paper"` passes and does not run the paper test; `uv run pytest -m paper` with no keys reports the test as skipped.
-- [ ] **Requirements:**
-    - [ ] "`tests/smoke/test_alpaca_paper.py` places a bracket buy of 1 share of a liquid ≥$5 symbol with a far-below-market limit (won't fill), verifies acceptance of all prices, verifies `get_order_by_client_id`, then cancels it; also verifies IEX quote and SIP-history daily bars fetch."
-    - [ ] "@pytest.mark.paper; skipped unless ALPACA_API_KEY/SECRET set and mode=paper".
-- [ ] **Verify:** `uv run pytest -m paper -rs` with the Alpaca variables unset prints a skip reason naming the missing keys; `TRADER_BROKER_MODE=live TRADER_BROKER_LIVE_ACK=I_ACCEPT_REAL_MONEY_RISK uv run trader-broker smoke-test` exits non-zero without contacting Alpaca.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `uv run pytest -m "not paper"` passes and does not run the paper test; `uv run pytest -m paper` with no keys reports the test as skipped.
+- [x] **Requirements:**
+    - [x] "`tests/smoke/test_alpaca_paper.py` places a bracket buy of 1 share of a liquid ≥$5 symbol with a far-below-market limit (won't fill), verifies acceptance of all prices, verifies `get_order_by_client_id`, then cancels it; also verifies IEX quote and SIP-history daily bars fetch."
+    - [x] "@pytest.mark.paper; skipped unless ALPACA_API_KEY/SECRET set and mode=paper".
+- [x] **Verify:** `uv run pytest -m paper -rs` with the Alpaca variables unset prints a skip reason naming the missing keys; `TRADER_BROKER_MODE=live TRADER_BROKER_LIVE_ACK=I_ACCEPT_REAL_MONEY_RISK uv run trader-broker smoke-test` exits non-zero without contacting Alpaca.
 
 ---
 
@@ -271,24 +271,24 @@ tests/unit/test_housekeeping.py     (create)
 
 **Sub-tasks:**
 
-- [ ] **3.1.1** — Create `TraderService` over a `Broker`, the state store (or a state-unavailable marker), `Caps`/`Settings`, a list of reviewers and an injectable time source. Add a `conftest.py` fixture that builds it over `FakeBroker` and a temp state DB.
-- [ ] **3.1.2** — Write the equity refresh, run on every tool call (read and write): fetch the account, call `check_halts`, persist the new peak, set `kill_switch` and `daily_halt_date` when triggered. When state is unavailable, skip persistence and do not fail the call.
-- [ ] **3.1.3** — Housekeeping step 1: cancel trader-broker entry orders (client id prefix `tb-`) that are not fully filled and are older than `entry_ttl_minutes`. A partly filled entry keeps its legs for the filled qty (Alpaca behavior); only the unfilled remainder is cancelled.
-- [ ] **3.1.4** — Housekeeping step 2: for each position, find the qty not covered by an open stop order. For uncovered qty, choose the stop price: the open journal entry's recorded stop, else 8% below average entry. If the current bid is at or below that stop, market-sell the uncovered qty and log it; otherwise submit a GTC stop with a `tb-` client id recorded in state first. Collect these positions for the `unprotected` list.
-- [ ] **3.1.5** — Housekeeping step 3: reconcile state orders with broker orders by client order id and update statuses. Record an `integrity_violation` only for: an order or position trader-broker did not place; an entry whose stored at-placement sizing broke a cap; negative cash. Price drift that pushes a position past 20% of equity is not a violation. Skip state writes when state is unavailable, but still run steps 1 and 2.
-- [ ] **3.1.6** — Write `get_risk_status()`: run housekeeping, then return mode, equity, last_equity, day P&L %, peak, drawdown %, kill_switch, daily_halt, exposure %, cash, per-symbol % of equity, unprotected positions, open entry orders and recent blocks.
-- [ ] **3.1.7** — Write `test_housekeeping.py`: entry 31 minutes old cancelled, 29 minutes old kept; partly filled entry past TTL has its remainder cancelled; unprotected position gets a GTC stop at the journal stop; position without a journal stop gets a stop 8% below average entry; bid below the recorded stop → market sell, logged; position grown to 25% of equity → no violation; foreign order → one violation after two housekeeping runs; negative cash → violation; equity refresh raises the peak; daily halt stays set when equity recovers from −4.1% to −3% the same day; kill switch stays set after equity recovers; state unavailable → stops still placed and no exception.
+- [x] **3.1.1** — Create `TraderService` over a `Broker`, the state store (or a state-unavailable marker), `Caps`/`Settings`, a list of reviewers and an injectable time source. Add a `conftest.py` fixture that builds it over `FakeBroker` and a temp state DB.
+- [x] **3.1.2** — Write the equity refresh, run on every tool call (read and write): fetch the account, call `check_halts`, persist the new peak, set `kill_switch` and `daily_halt_date` when triggered. When state is unavailable, skip persistence and do not fail the call.
+- [x] **3.1.3** — Housekeeping step 1: cancel trader-broker entry orders (client id prefix `tb-`) that are not fully filled and are older than `entry_ttl_minutes`. A partly filled entry keeps its legs for the filled qty (Alpaca behavior); only the unfilled remainder is cancelled.
+- [x] **3.1.4** — Housekeeping step 2: for each position, find the qty not covered by an open stop order. For uncovered qty, choose the stop price: the open journal entry's recorded stop, else 8% below average entry. If the current bid is at or below that stop, market-sell the uncovered qty and log it; otherwise submit a GTC stop with a `tb-` client id recorded in state first. Collect these positions for the `unprotected` list.
+- [x] **3.1.5** — Housekeeping step 3: reconcile state orders with broker orders by client order id and update statuses. Record an `integrity_violation` only for: an order or position trader-broker did not place; an entry whose stored at-placement sizing broke a cap; negative cash. Price drift that pushes a position past 20% of equity is not a violation. Skip state writes when state is unavailable, but still run steps 1 and 2.
+- [x] **3.1.6** — Write `get_risk_status()`: run housekeeping, then return mode, equity, last_equity, day P&L %, peak, drawdown %, kill_switch, daily_halt, exposure %, cash, per-symbol % of equity, unprotected positions, open entry orders and recent blocks.
+- [x] **3.1.7** — Write `test_housekeeping.py`: entry 31 minutes old cancelled, 29 minutes old kept; partly filled entry past TTL has its remainder cancelled; unprotected position gets a GTC stop at the journal stop; position without a journal stop gets a stop 8% below average entry; bid below the recorded stop → market sell, logged; position grown to 25% of equity → no violation; foreign order → one violation after two housekeeping runs; negative cash → violation; equity refresh raises the peak; daily halt stays set when equity recovers from −4.1% to −3% the same day; kill switch stays set after equity recovers; state unavailable → stops still placed and no exception.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_housekeeping.py` passes with every case in 3.1.7.
-- [ ] **Requirements:**
-    - [ ] "Run housekeeping at the start of every write tool and `get_risk_status`" — cancel stale entries, give unprotected positions a stop, reconcile.
-    - [ ] "record an `integrity_violation` row only for: an order or position trader-broker did not place; an entry whose at-placement sizing … broke a cap; negative cash (margin use). Price drift that pushes a position past 20% is not a violation (test)."
-    - [ ] "on every tool call update `equity_peak = max(equity_peak, equity)`"; daily halt and kill switch persist.
-    - [ ] SHOULD: `get_risk_status` returns the listed fields.
-- [ ] **Verify:** Read `service.py` and confirm housekeeping order is: cancel stale entries, repair unprotected positions, reconcile; and that the repair path writes the client id to state before calling `submit_stop`.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_housekeeping.py` passes with every case in 3.1.7.
+- [x] **Requirements:**
+    - [x] "Run housekeeping at the start of every write tool and `get_risk_status`" — cancel stale entries, give unprotected positions a stop, reconcile.
+    - [x] "record an `integrity_violation` row only for: an order or position trader-broker did not place; an entry whose at-placement sizing … broke a cap; negative cash (margin use). Price drift that pushes a position past 20% is not a violation (test)."
+    - [x] "on every tool call update `equity_peak = max(equity_peak, equity)`"; daily halt and kill switch persist.
+    - [x] SHOULD: `get_risk_status` returns the listed fields.
+- [x] **Verify:** Read `service.py` and confirm housekeeping order is: cancel stale entries, repair unprotected positions, reconcile; and that the repair path writes the client id to state before calling `submit_stop`.
 
 ---
 
@@ -349,26 +349,26 @@ tests/unit/test_review_decision.py     (create)
 
 **Sub-tasks:**
 
-- [ ] **3.3.1** — Write `build_packet()` from data the service passes in: proposal (symbol, stop, target, thesis, invalidation, horizon_days); sized order (qty, notional, % equity, $ risk, % equity risk); last quote; indicators from about 260 daily bars (close, SMA20, SMA50, SMA200, RSI14, ATR14, % from 52-week high, 20-day ADV) and the last 60 closes; up to 10 latest headlines with timestamps; account (equity, cash, exposure %, positions with % equity); regime snapshot (SPY close vs SMA50 and SMA200). Serialize it deterministically and compute a SHA-256 packet hash.
-- [ ] **3.3.2** — Define the `Reviewer` Protocol (name, `review(packet) -> ReviewOutcome`, where the outcome is a validated `ReviewVerdict` or an error with a message).
-- [ ] **3.3.3** — Write `OpenAICompatReviewer` with the `openai` SDK: base URL and model from settings, API key read from the env var named by `REVIEWER_n_API_KEY_ENV`, chat completions with JSON output, a system prompt that states the reviewer role and the verdict schema. Validate the reply with pydantic. Timeout `reviewer_timeout_s`; one retry on error or invalid JSON; a second failure gives an `error` outcome. A returned target change is kept as advisory only.
-- [ ] **3.3.4** — Write a function that runs both reviewers concurrently and returns both outcomes.
-- [ ] **3.3.5** — Write `decide()`: any `error` → block; any `reject` with `high` confidence → block; zero `approve`/`modify` → block; else `new_stop = max(proposal stop, modified stops)` (a modified stop ≥ entry is ignored), `mult = min(size multipliers, 1.0)`, `final_qty = floor(min(original_qty, resize(new_stop)) * mult)`, where `resize` calls `size_position` with the new stop. Block reasons name the reviewer. The final qty never exceeds the original qty.
-- [ ] **3.3.6** — Add a scriptable `FakeReviewer` fixture to `conftest.py` (fixed verdict, raise, invalid JSON, delay).
-- [ ] **3.3.7** — Write `test_review_decision.py`: approve+approve → proceed; approve+reject(low) → proceed; approve+reject(high) → block; reject+reject(low) → block; one error → block naming the reviewer; equity 100k, entry 100, stop 90→92, mult 0.5 → stop 92, qty 100; entry 50, stop 40→45, no mult → qty stays 300; modified stop 85 vs 90 → keeps 90; modified stop ≥ entry ignored.
-- [ ] **3.3.8** — Write `test_review_packet.py`: every packet field is present; 60 closes; at most 10 headlines; regime snapshot present; same input → same hash. Test `OpenAICompatReviewer` with a stubbed `openai` client: valid reply parsed; invalid JSON then valid → success after one retry; invalid twice → `error`; out-of-range `size_multiplier` → treated as invalid.
+- [x] **3.3.1** — Write `build_packet()` from data the service passes in: proposal (symbol, stop, target, thesis, invalidation, horizon_days); sized order (qty, notional, % equity, $ risk, % equity risk); last quote; indicators from about 260 daily bars (close, SMA20, SMA50, SMA200, RSI14, ATR14, % from 52-week high, 20-day ADV) and the last 60 closes; up to 10 latest headlines with timestamps; account (equity, cash, exposure %, positions with % equity); regime snapshot (SPY close vs SMA50 and SMA200). Serialize it deterministically and compute a SHA-256 packet hash.
+- [x] **3.3.2** — Define the `Reviewer` Protocol (name, `review(packet) -> ReviewOutcome`, where the outcome is a validated `ReviewVerdict` or an error with a message).
+- [x] **3.3.3** — Write `OpenAICompatReviewer` with the `openai` SDK: base URL and model from settings, API key read from the env var named by `REVIEWER_n_API_KEY_ENV`, chat completions with JSON output, a system prompt that states the reviewer role and the verdict schema. Validate the reply with pydantic. Timeout `reviewer_timeout_s`; one retry on error or invalid JSON; a second failure gives an `error` outcome. A returned target change is kept as advisory only.
+- [x] **3.3.4** — Write a function that runs both reviewers concurrently and returns both outcomes.
+- [x] **3.3.5** — Write `decide()`: any `error` → block; any `reject` with `high` confidence → block; zero `approve`/`modify` → block; else `new_stop = max(proposal stop, modified stops)` (a modified stop ≥ entry is ignored), `mult = min(size multipliers, 1.0)`, `final_qty = floor(min(original_qty, resize(new_stop)) * mult)`, where `resize` calls `size_position` with the new stop. Block reasons name the reviewer. The final qty never exceeds the original qty.
+- [x] **3.3.6** — Add a scriptable `FakeReviewer` fixture to `conftest.py` (fixed verdict, raise, invalid JSON, delay).
+- [x] **3.3.7** — Write `test_review_decision.py`: approve+approve → proceed; approve+reject(low) → proceed; approve+reject(high) → block; reject+reject(low) → block; one error → block naming the reviewer; equity 100k, entry 100, stop 90→92, mult 0.5 → stop 92, qty 100; entry 50, stop 40→45, no mult → qty stays 300; modified stop 85 vs 90 → keeps 90; modified stop ≥ entry ignored.
+- [x] **3.3.8** — Write `test_review_packet.py`: every packet field is present; 60 closes; at most 10 headlines; regime snapshot present; same input → same hash. Test `OpenAICompatReviewer` with a stubbed `openai` client: valid reply parsed; invalid JSON then valid → success after one retry; invalid twice → `error`; out-of-range `size_multiplier` → treated as invalid.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_review_packet.py` and `test_review_decision.py` pass with every case in 3.3.7 and 3.3.8, with no network.
-- [ ] **Requirements:**
-    - [ ] "`build_packet` includes" every listed field; "The server builds the review packet itself, so the proposer cannot frame the facts."
-    - [ ] "Two reviewers configured by env … both via the `openai` SDK's OpenAI-compatible chat completions with JSON output".
-    - [ ] "Verdict schema validated with pydantic … Target changes, if returned, are recorded as advisory only."
-    - [ ] "Call both reviewers concurrently. Each call: timeout `reviewer_timeout_s` (default 60), one retry on error/invalid JSON; on second failure the outcome is `error`."
-    - [ ] "`decide()`" rule exactly as specified; "The final qty never exceeds the original qty."
-- [ ] **Verify:** Read `decide()` and confirm a modified stop can only raise the stop and a multiplier can only shrink the size (no code path increases qty above the original).
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_review_packet.py` and `test_review_decision.py` pass with every case in 3.3.7 and 3.3.8, with no network.
+- [x] **Requirements:**
+    - [x] "`build_packet` includes" every listed field; "The server builds the review packet itself, so the proposer cannot frame the facts."
+    - [x] "Two reviewers configured by env … both via the `openai` SDK's OpenAI-compatible chat completions with JSON output".
+    - [x] "Verdict schema validated with pydantic … Target changes, if returned, are recorded as advisory only."
+    - [x] "Call both reviewers concurrently. Each call: timeout `reviewer_timeout_s` (default 60), one retry on error/invalid JSON; on second failure the outcome is `error`."
+    - [x] "`decide()`" rule exactly as specified; "The final qty never exceeds the original qty."
+- [x] **Verify:** Read `decide()` and confirm a modified stop can only raise the stop and a multiplier can only shrink the size (no code path increases qty above the original).
 
 ---
 

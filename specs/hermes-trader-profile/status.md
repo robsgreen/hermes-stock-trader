@@ -41,3 +41,6 @@ PR: (none)
 - 2026-11-03 17:49 - Task 1.3 done (ce4e089)
 - 2026-11-03 17:53 - Task 2.1 done (026fdce); note: SDK private attrs (_retry, _session) workaround — flag for review
 - 2026-11-03 17:54 - Task 1.4 done (db0d1cb); ticked 1.3, 2.1, 1.4
+- 2026-11-03 17:57 - Task 2.2 done (133f7b2); paper smoke unrun (no keys) — user must run before paper period
+- 2026-11-03 17:58 - Task 3.3 done (0d95873)
+- 2026-11-03 18:02 - Task 3.1 done (5c8d6eb); ticked 2.2, 3.3, 3.1
