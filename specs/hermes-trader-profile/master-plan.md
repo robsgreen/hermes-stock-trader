@@ -1,7 +1,7 @@
 # Master Plan: Hermes Trader Profile
 
 Created: 2026-11-03
-Status: draft
+Status: confirmed
 
 ---
 
@@ -17,14 +17,14 @@ Alpaca is a commission-free US broker with a free paper-trading account ($100k s
 flowchart LR
   subgraph DO[DigitalOcean server]
     GW[Hermes gateway<br/>runs cron jobs] --> DEF[default profile]
-    GW --> TR[trader profile<br/>new]
+    GW --> TR[stock-trader profile<br/>new]
   end
   DEF --> BOTS[Discord + Telegram bots]
   TR -. routed channel .-> BOTS
   TR --> MCP[MCP server] --> ALP[Alpaca paper API]
 ```
 
-We are adding a `trader` profile next to your default one. It swing-trades US stocks (holds for days to weeks) on Alpaca paper, aiming for the highest return it can reach inside hard limits you chose.
+We are adding a `stock-trader` profile next to your default one. It swing-trades US stocks (holds for days to weeks) on Alpaca paper, aiming for the highest return it can reach inside hard limits you chose.
 
 ### The Problem
 
@@ -66,7 +66,7 @@ We recommend a small Python MCP server, `trader-broker`, as the agent's only pat
 
 ```mermaid
 flowchart LR
-  H[Hermes trader profile<br/>Claude proposes] -->|MCP tools| TB[trader-broker]
+  H[Hermes stock-trader profile<br/>Claude proposes] -->|MCP tools| TB[trader-broker]
   TB --> RG[Risk gate]
   TB --> RV[Cross-model review<br/>GPT + Grok]
   TB --> ST[(State: SQLite<br/>journal, halts, peak)]
@@ -168,7 +168,7 @@ You chose this aggressive rule over "both must approve" because committees of LL
 
 #### Hermes profile
 
-The `trader` profile holds the persona, skills, schedule and tool permissions. Its persona is an aggressive, disciplined swing trader who hunts momentum and catalysts and cuts losers fast.
+The `stock-trader` profile holds the persona, skills, schedule and tool permissions. Its persona is an aggressive, disciplined swing trader who hunts momentum and catalysts and cuts losers fast.
 
 We switch off Hermes' terminal, code-execution and file tools for this profile. Without them the agent cannot edit its own limits, read its API keys, or call Alpaca around the server. It keeps `trader-broker`, web search and its memory.
 
@@ -192,7 +192,7 @@ flowchart LR
   D -. Fridays .-> E[16:30 weekly scorecard vs SPY]
 ```
 
-Each job posts its final summary to a new trading channel. Hermes' multi-profile gateway lets the `trader` profile post through your existing Discord and Telegram bots once you add one `profile_routes` entry to the default profile; you need no new bot tokens.
+Each job posts its final summary to a new trading channel. Hermes' multi-profile gateway lets the `stock-trader` profile post through your existing Discord and Telegram bots once you add one `profile_routes` entry to the default profile; you need no new bot tokens.
 
 #### Getting to live money
 
@@ -392,9 +392,9 @@ MUST: Provide the Hermes profile under `profile/`.
 - `SOUL.md`: aggressive swing-trader persona; states that sizing/caps are enforced by tools, that the agent must state next earnings date in every thesis, must avoid holding through earnings unless thesis is earnings-driven and size reflects gap risk, and must post concise reports.
 - Five skills with Hermes frontmatter (`name`, `description`, `version`, `metadata.hermes.category: trading`, `requires_toolsets` naming the trader_broker MCP toolset), each listing steps and which tools to call.
 - `cron/jobs.yaml`: five jobs (premarket-plan 09:00, entries 09:45, midday 12:30, close-review 15:45 Mon–Fri; weekly-report 16:30 Fri), timezone America/New_York, `grace_minutes` 5 (entries/midday/close) and 30 (others), pre-run script `scripts/market-open-gate.sh` for market-hours jobs, deliver targets from env `TRADER_DISCORD_TARGET`, `TRADER_TELEGRAM_TARGET`, self-contained prompts naming skills.
-- `profile_routes.example.yaml`: Discord (guild_id + chat_id) and Telegram (group chat_id) route entries mapping to profile `trader`, with a warning not to route DM chat ids.
+- `profile_routes.example.yaml`: Discord (guild_id + chat_id) and Telegram (group chat_id) route entries mapping to profile `stock-trader`, with a warning not to route DM chat ids.
 
-MUST: `scripts/install-profile.sh` (bash, `set -euo pipefail`, idempotent): check `hermes`, `uv`, `git`; `uv sync`; create profile `trader` if absent (`hermes profile create trader --description ...`); copy config/SOUL/skills into `~/.hermes/profiles/trader/` (back up existing files with timestamp); create `.env` from `.env.example` if absent (never overwrite); create cron jobs via `hermes -p trader cron create ...` from `jobs.yaml` only if a job with that name does not exist, created `--paused` unless `--enable-jobs`; print the profile_routes snippet and next steps; never edit the default profile; support `--dry-run`.
+MUST: `scripts/install-profile.sh` (bash, `set -euo pipefail`, idempotent): check `hermes`, `uv`, `git`; `uv sync`; create profile `stock-trader` if absent (`hermes profile create stock-trader --description ...`); copy config/SOUL/skills into `~/.hermes/profiles/stock-trader/` (back up existing files with timestamp); create `.env` from `.env.example` if absent (never overwrite); create cron jobs via `hermes -p stock-trader cron create ...` from `jobs.yaml` only if a job with that name does not exist, created `--paused` unless `--enable-jobs`; print the profile_routes snippet and next steps; never edit the default profile; support `--dry-run`.
 
 MUST: `trader-broker market-open-gate` prints `{"wakeAgent": true}` as its last stdout line when today (America/New_York date) is a trading session per `Broker.get_calendar(today, today)`, and `{"wakeAgent": false}` otherwise; it never looks at whether the market is open right now. Exits 0 either way; on API error prints wakeAgent true. Used by premarket-plan, entries, midday and close-review; weekly-report runs ungated.
 - Tests: 09:00 on a trading day → true; holiday → false; weekend → false; early-close day at 15:45 → true; API error → true.

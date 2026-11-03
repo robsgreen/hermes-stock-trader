@@ -7,7 +7,7 @@ PR: (none)
 
 ## Checklist
 
-- [ ] **Planning**
+- [x] **Planning**
 - [ ] **Task Generation**
 - [ ] **Implementation**
 - [ ] **Testing**
@@ -31,3 +31,5 @@ PR: (none)
 - 2026-11-03 14:46 - User decisions: approach A (safe broker MCP server, broker adapter for future Robinhood etc.); design checkpoint approved; add cross-model review (Claude proposes, GPT + Grok review), aggressive rule
 - 2026-11-03 14:49 - master-plan.md written; refinement pass done
 - 2026-11-03 14:53 - Plan review: 21 findings, 21 incorporated, 0 rebutted (M5 resolved by dropping proposer fallback)
+- 2026-11-03 17:25 - User confirmed master plan (profile renamed to stock-trader)
+- 2026-11-03 17:25 - Phase → Task Generation
