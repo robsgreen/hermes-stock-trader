@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 57 / 102 sub-tasks complete
+> **Progress:** 64 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -390,26 +390,26 @@ tests/unit/test_idempotency.py      (create)
 
 **Sub-tasks:**
 
-- [ ] **3.4.1** — Gate stage: run housekeeping; if state is unavailable return `blocked` with `state_unavailable`; apply `check_halts` failures; fetch asset, quote, SIP daily bars ending at the previous close (for ADV), account, positions and open orders; a broker error here returns `blocked` with `broker_error`; call `size_position` and `check_entry`. Every block is written to the `blocks` table.
-- [ ] **3.4.2** — Review stage: build the packet (fetching ~260 daily bars, news and SPY bars), run both reviewers, call `decide()`, apply the safer modifications, and re-run `check_entry` on the final order. A review block returns `blocked` with reasons naming the reviewer.
-- [ ] **3.4.3** — Submission stage: generate `tb-<uuid4>`, record the order intent with its at-placement sizing in state, then call `submit_bracket_buy` (entry limit `gtc`, take-profit at target, stop at final stop). On an unknown-result error, look up the order by client id: found → treat as placed; not found → `blocked` with `broker_error`. Never submit twice for one proposal.
-- [ ] **3.4.4** — In `journal.py`, write `record_entry()` storing thesis, invalidation, horizon, stop, target, entry and review id. In the service, persist the `reviews` row (packet hash, both raw verdicts, decision, final order) and link it to the journal entry.
-- [ ] **3.4.5** — Return `{"status": "placed"|"blocked", "reasons": [...], "order": {...}|None, "reviews": [{"reviewer","verdict","confidence","reasons"}]}` with final qty, stop and target in `order`.
-- [ ] **3.4.6** — Write `test_service_buy.py`: approve+approve places one bracket with `gtc`, correct prices and a `tb-` client id; journal and reviews rows written and linked; each gate failure returns `blocked` with its rule id and writes a `blocks` row; state missing → `state_unavailable` (and a sell still works); daily halt → `daily_halt` (sell allowed); kill switch → `kill_switch`; reviewer error → blocked and no order submitted; modified stop and multiplier applied; broker error before submit → `broker_error`.
-- [ ] **3.4.7** — Write `test_idempotency.py`: broker accepts then times out → exactly one order exists and the result is `placed`; broker times out without accepting → `blocked` and no second submit call; the client id is in state before the submit call (assert via a FakeBroker hook).
+- [x] **3.4.1** — Gate stage: run housekeeping; if state is unavailable return `blocked` with `state_unavailable`; apply `check_halts` failures; fetch asset, quote, SIP daily bars ending at the previous close (for ADV), account, positions and open orders; a broker error here returns `blocked` with `broker_error`; call `size_position` and `check_entry`. Every block is written to the `blocks` table.
+- [x] **3.4.2** — Review stage: build the packet (fetching ~260 daily bars, news and SPY bars), run both reviewers, call `decide()`, apply the safer modifications, and re-run `check_entry` on the final order. A review block returns `blocked` with reasons naming the reviewer.
+- [x] **3.4.3** — Submission stage: generate `tb-<uuid4>`, record the order intent with its at-placement sizing in state, then call `submit_bracket_buy` (entry limit `gtc`, take-profit at target, stop at final stop). On an unknown-result error, look up the order by client id: found → treat as placed; not found → `blocked` with `broker_error`. Never submit twice for one proposal.
+- [x] **3.4.4** — In `journal.py`, write `record_entry()` storing thesis, invalidation, horizon, stop, target, entry and review id. In the service, persist the `reviews` row (packet hash, both raw verdicts, decision, final order) and link it to the journal entry.
+- [x] **3.4.5** — Return `{"status": "placed"|"blocked", "reasons": [...], "order": {...}|None, "reviews": [{"reviewer","verdict","confidence","reasons"}]}` with final qty, stop and target in `order`.
+- [x] **3.4.6** — Write `test_service_buy.py`: approve+approve places one bracket with `gtc`, correct prices and a `tb-` client id; journal and reviews rows written and linked; each gate failure returns `blocked` with its rule id and writes a `blocks` row; state missing → `state_unavailable` (and a sell still works); daily halt → `daily_halt` (sell allowed); kill switch → `kill_switch`; reviewer error → blocked and no order submitted; modified stop and multiplier applied; broker error before submit → `broker_error`.
+- [x] **3.4.7** — Write `test_idempotency.py`: broker accepts then times out → exactly one order exists and the result is `placed`; broker times out without accepting → `blocked` and no second submit call; the client id is in state before the submit call (assert via a FakeBroker hook).
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_service_buy.py` and `test_idempotency.py` pass with every case in 3.4.6 and 3.4.7.
-- [ ] **Requirements:**
-    - [ ] "`propose_buy` is the only tool that opens a position. … It never supplies a share count."
-    - [ ] "Implement cross-model review inside `propose_buy`, after the risk gate passes and before order submission."
-    - [ ] "Every order carries a unique `client_order_id` (`tb-<uuid4>`) recorded in state **before** submission; on timeout/unknown result the service looks up by client id before any retry; never submits twice for one proposal."
-    - [ ] "Persist packet hash, both raw verdicts, decision and final order in `reviews` table linked to the journal entry."
-    - [ ] "`propose_buy` returns: status (`placed` | `blocked`), reasons, final qty/stop/target, both reviewers' verdict summaries."
-    - [ ] "Journal every placed buy with thesis, invalidation, horizon, stop, target, entry, review id".
-- [ ] **Verify:** Read `propose_buy` and confirm the order of stages is housekeeping → gate → review → re-check → record intent → submit, and that no code path calls `submit_bracket_buy` twice.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_service_buy.py` and `test_idempotency.py` pass with every case in 3.4.6 and 3.4.7.
+- [x] **Requirements:**
+    - [x] "`propose_buy` is the only tool that opens a position. … It never supplies a share count."
+    - [x] "Implement cross-model review inside `propose_buy`, after the risk gate passes and before order submission."
+    - [x] "Every order carries a unique `client_order_id` (`tb-<uuid4>`) recorded in state **before** submission; on timeout/unknown result the service looks up by client id before any retry; never submits twice for one proposal."
+    - [x] "Persist packet hash, both raw verdicts, decision and final order in `reviews` table linked to the journal entry."
+    - [x] "`propose_buy` returns: status (`placed` | `blocked`), reasons, final qty/stop/target, both reviewers' verdict summaries."
+    - [x] "Journal every placed buy with thesis, invalidation, horizon, stop, target, entry, review id".
+- [x] **Verify:** Read `propose_buy` and confirm the order of stages is housekeeping → gate → review → re-check → record intent → submit, and that no code path calls `submit_bracket_buy` twice.
 
 ---
 
