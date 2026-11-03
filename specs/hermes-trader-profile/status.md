@@ -46,3 +46,4 @@ PR: (none)
 - 2026-11-03 18:02 - Task 3.1 done (5c8d6eb); ticked 2.2, 3.3, 3.1
 - 2026-11-03 18:08 - Task 3.2 done (0e8ee7f)
 - 2026-11-03 18:16 - Task 3.4 done (b6256cf)
+- 2026-11-03 18:23 - Task 4.1 done (62a8b6b)

@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 64 / 102 sub-tasks complete
+> **Progress:** 69 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -432,20 +432,20 @@ tests/unit/test_journal.py         (create)
 
 **Sub-tasks:**
 
-- [ ] **4.1.1** — In `journal.py`, detect closes from broker fills and positions: an open journal entry whose symbol is no longer held is closed; the exit price is the qty-weighted average of sell fills since entry. A partial sell does not settle the entry.
-- [ ] **4.1.2** — Settle a closed entry: `trade_return_pct` from entry and exit price; `spy_return_pct` from SPY daily closes over the same holding window (entry date to exit date); `alpha_pct = trade_return_pct - spy_return_pct`; set `lesson_pending = 1`.
-- [ ] **4.1.3** — Call close detection and settlement from housekeeping, after reconciliation.
-- [ ] **4.1.4** — Add service methods `get_journal(status=None, limit)` (status values: open, closed, `pending_lessons`; none means all) and `journal_note(entry_id, note)` (stores the lesson, clears `lesson_pending`; unknown id → error).
-- [ ] **4.1.5** — Write `test_journal.py`: trade +10% while SPY +2% → alpha +8% and `lesson_pending`; partial sell stays open; stop-out at a gap price settles the actual loss; `get_journal(status="pending_lessons")` returns only settled trades waiting for lessons; `journal_note` clears the flag; unknown entry id rejected.
+- [x] **4.1.1** — In `journal.py`, detect closes from broker fills and positions: an open journal entry whose symbol is no longer held is closed; the exit price is the qty-weighted average of sell fills since entry. A partial sell does not settle the entry.
+- [x] **4.1.2** — Settle a closed entry: `trade_return_pct` from entry and exit price; `spy_return_pct` from SPY daily closes over the same holding window (entry date to exit date); `alpha_pct = trade_return_pct - spy_return_pct`; set `lesson_pending = 1`.
+- [x] **4.1.3** — Call close detection and settlement from housekeeping, after reconciliation.
+- [x] **4.1.4** — Add service methods `get_journal(status=None, limit)` (status values: open, closed, `pending_lessons`; none means all) and `journal_note(entry_id, note)` (stores the lesson, clears `lesson_pending`; unknown id → error).
+- [x] **4.1.5** — Write `test_journal.py`: trade +10% while SPY +2% → alpha +8% and `lesson_pending`; partial sell stays open; stop-out at a gap price settles the actual loss; `get_journal(status="pending_lessons")` returns only settled trades waiting for lessons; `journal_note` clears the flag; unknown entry id rejected.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_journal.py` passes with every case in 4.1.5; `test_housekeeping.py` still passes.
-- [ ] **Requirements:**
-    - [ ] "detect closes via broker fills/positions in housekeeping; on close settle `trade_return_pct` and `spy_return_pct` over the same holding window and `alpha_pct`; mark `lesson_pending=1`."
-    - [ ] "`get_journal(status="pending_lessons")` returns settled trades awaiting lessons; `journal_note(entry_id, note)` stores a lesson and clears the flag."
-- [ ] **Verify:** Read the housekeeping method and confirm settlement runs after reconciliation and only for entries whose symbol is fully closed.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_journal.py` passes with every case in 4.1.5; `test_housekeeping.py` still passes.
+- [x] **Requirements:**
+    - [x] "detect closes via broker fills/positions in housekeeping; on close settle `trade_return_pct` and `spy_return_pct` over the same holding window and `alpha_pct`; mark `lesson_pending=1`."
+    - [x] "`get_journal(status="pending_lessons")` returns settled trades awaiting lessons; `journal_note(entry_id, note)` stores a lesson and clears the flag."
+- [x] **Verify:** Read the housekeeping method and confirm settlement runs after reconciliation and only for entries whose symbol is fully closed.
 
 ---
 
