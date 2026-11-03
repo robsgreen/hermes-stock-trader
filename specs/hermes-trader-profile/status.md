@@ -22,3 +22,4 @@ PR: (none)
 - 2026-11-03 13:12 - Spec created
 - 2026-11-03 13:12 - Permissions Setup skipped: settings.local.json write denied by auto-mode classifier
 - 2026-11-03 13:15 - Research in: rules/risk, Alpaca MCP, Hermes profiles; awaiting trading-agents survey
+- 2026-11-03 13:15 - Research in: trading-agents survey (TradingAgents pattern, tradermonty skills, AlpacaTradingAgent caps; live LLM results weak)
