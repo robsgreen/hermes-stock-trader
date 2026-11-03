@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 69 / 102 sub-tasks complete
+> **Progress:** 73 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -465,19 +465,19 @@ tests/unit/test_report.py          (create)
 
 **Sub-tasks:**
 
-- [ ] **4.2.1** — Compute, since `paper_start_date`: weeks elapsed; portfolio return from broker portfolio history; SPY return over the same period; max drawdown from portfolio history; integrity violation count; blocks grouped by reason; reviewer stats (verdict counts per reviewer; approve-vs-outcome hit rate per reviewer on settled trades).
-- [ ] **4.2.2** — Score each go-live criterion PASS/FAIL: weeks ≥ 8; portfolio return > SPY return; max drawdown < 25%; integrity violations = 0. State in the output that passing unlocks nothing by itself.
-- [ ] **4.2.3** — Render a human text report and a JSON report (same data) for the `--json` flag.
-- [ ] **4.2.4** — Write `test_report.py` with fixtures: all four PASS; each criterion failing on its own; boundaries (exactly 8 weeks → PASS; drawdown exactly 25% → FAIL; return equal to SPY → FAIL); reviewer hit rate computed from settled trades; JSON output parses and holds the same values.
+- [x] **4.2.1** — Compute, since `paper_start_date`: weeks elapsed; portfolio return from broker portfolio history; SPY return over the same period; max drawdown from portfolio history; integrity violation count; blocks grouped by reason; reviewer stats (verdict counts per reviewer; approve-vs-outcome hit rate per reviewer on settled trades).
+- [x] **4.2.2** — Score each go-live criterion PASS/FAIL: weeks ≥ 8; portfolio return > SPY return; max drawdown < 25%; integrity violations = 0. State in the output that passing unlocks nothing by itself.
+- [x] **4.2.3** — Render a human text report and a JSON report (same data) for the `--json` flag.
+- [x] **4.2.4** — Write `test_report.py` with fixtures: all four PASS; each criterion failing on its own; boundaries (exactly 8 weeks → PASS; drawdown exactly 25% → FAIL; return equal to SPY → FAIL); reviewer hit rate computed from settled trades; JSON output parses and holds the same values.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_report.py` passes with every case in 4.2.4.
-- [ ] **Requirements:**
-    - [ ] "Implement `trader-broker report` computing since `paper_start_date` … print PASS/FAIL per go-live criterion (≥8 weeks, return > SPY, max DD < 25%, 0 integrity violations); `--json` flag."
-    - [ ] "The journal records every verdict, so after the paper period you can see whether each reviewer earned its seat."
-- [ ] **Verify:** `test_boundaries.py` still passes, confirming `report.py` imports nothing from `alpaca`.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_report.py` passes with every case in 4.2.4.
+- [x] **Requirements:**
+    - [x] "Implement `trader-broker report` computing since `paper_start_date` … print PASS/FAIL per go-live criterion (≥8 weeks, return > SPY, max DD < 25%, 0 integrity violations); `--json` flag."
+    - [x] "The journal records every verdict, so after the paper period you can see whether each reviewer earned its seat."
+- [x] **Verify:** `test_boundaries.py` still passes, confirming `report.py` imports nothing from `alpaca`.
 
 ---
 
