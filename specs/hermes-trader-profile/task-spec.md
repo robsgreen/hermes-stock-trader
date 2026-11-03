@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 7 / 102 sub-tasks complete
+> **Progress:** 14 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -88,23 +88,23 @@ tests/unit/test_boundaries.py         (create)
 
 **Sub-tasks:**
 
-- [ ] **1.2.1** — In `models.py`, define `Account`, `Position`, `Order`, `Quote`, `Bar`, `NewsItem`, `Clock`, `BracketOrderRequest`, `Proposal`, `SizedOrder`, `RiskDecision`, `Modifications`, `ReviewVerdict`, `ReviewOutcome`, `JournalEntry`, `Asset`, `Movers`, `EquityPoint`, `Fill`, `TradingDay`. Use `Decimal` for prices. Match the master plan Interfaces exactly for `BracketOrderRequest` (frozen, `time_in_force="gtc"`), `Proposal` (thesis 1..2000 chars, invalidation 1..500 chars, horizon_days 1..60, optional `limit_price`), `ReviewVerdict` (reasons 1..5), `Modifications` (`stop_price`, `size_multiplier` in (0, 1], advisory `target_price`) and `RiskDecision` (failure rule ids `long_only`, `leverage`, `cash`, `symbol_cap`, `risk_size`, `min_price`, `min_adv`, `market_closed`, `too_late`, `daily_halt`, `kill_switch`, `stop_invalid`, `target_invalid`, `qty_zero`, `not_tradable`, `state_unavailable`). `Order` carries id, client order id, symbol, side, type, order class, status, qty, filled qty, limit/stop prices, time in force, parent id or legs, and created time.
-- [ ] **1.2.2** — In `brokers/base.py`, define the runtime-checkable `Broker` Protocol with exactly the methods and signatures in the master plan Interfaces. Define broker error types the service needs: a general broker error, a rate-limit error, and an unknown-result error for a write whose outcome is not known (timeout).
-- [ ] **1.2.3** — In `brokers/fake.py`, implement `FakeBroker`: in memory, deterministic, scriptable. Tests can set account, positions, assets, quotes, daily and intraday bars, news, movers, clock, calendar, portfolio history and fills, and inject the current time. `submit_bracket_buy` creates a parent entry plus a stop leg and a take-profit leg. Provide test helpers to fill an entry (fully or partly), trigger a stop, and move prices.
-- [ ] **1.2.4** — Add scripted failures to `FakeBroker`: raise a broker error on the next call to a named method, raise a rate-limit error, and "accept then time out" (store the order, then raise the unknown-result error). Enforce Alpaca's reserved-quantity rule: reject a sell that exceeds position qty minus qty reserved by open sell orders.
-- [ ] **1.2.5** — In `indicators.py`, write pure functions: SMA(n), RSI14, ATR14, percent from 52-week high, and average dollar volume over N daily bars (close × volume).
-- [ ] **1.2.6** — Add `conftest.py` fixtures: a `FakeBroker` preset with a $100k paper-style account, a liquid symbol `XYZ` priced above $5 with ADV above $20M, an open market clock, and a fixed "now".
-- [ ] **1.2.7** — Write `test_indicators.py` with hand-computed values for each function, including short-input behavior. Write `test_boundaries.py`: `FakeBroker()` is an instance of `Broker` at runtime; an AST scan of every `.py` file under `src/trader_broker/` outside `brokers/` finds no import of the `alpaca` package.
+- [x] **1.2.1** — In `models.py`, define `Account`, `Position`, `Order`, `Quote`, `Bar`, `NewsItem`, `Clock`, `BracketOrderRequest`, `Proposal`, `SizedOrder`, `RiskDecision`, `Modifications`, `ReviewVerdict`, `ReviewOutcome`, `JournalEntry`, `Asset`, `Movers`, `EquityPoint`, `Fill`, `TradingDay`. Use `Decimal` for prices. Match the master plan Interfaces exactly for `BracketOrderRequest` (frozen, `time_in_force="gtc"`), `Proposal` (thesis 1..2000 chars, invalidation 1..500 chars, horizon_days 1..60, optional `limit_price`), `ReviewVerdict` (reasons 1..5), `Modifications` (`stop_price`, `size_multiplier` in (0, 1], advisory `target_price`) and `RiskDecision` (failure rule ids `long_only`, `leverage`, `cash`, `symbol_cap`, `risk_size`, `min_price`, `min_adv`, `market_closed`, `too_late`, `daily_halt`, `kill_switch`, `stop_invalid`, `target_invalid`, `qty_zero`, `not_tradable`, `state_unavailable`). `Order` carries id, client order id, symbol, side, type, order class, status, qty, filled qty, limit/stop prices, time in force, parent id or legs, and created time.
+- [x] **1.2.2** — In `brokers/base.py`, define the runtime-checkable `Broker` Protocol with exactly the methods and signatures in the master plan Interfaces. Define broker error types the service needs: a general broker error, a rate-limit error, and an unknown-result error for a write whose outcome is not known (timeout).
+- [x] **1.2.3** — In `brokers/fake.py`, implement `FakeBroker`: in memory, deterministic, scriptable. Tests can set account, positions, assets, quotes, daily and intraday bars, news, movers, clock, calendar, portfolio history and fills, and inject the current time. `submit_bracket_buy` creates a parent entry plus a stop leg and a take-profit leg. Provide test helpers to fill an entry (fully or partly), trigger a stop, and move prices.
+- [x] **1.2.4** — Add scripted failures to `FakeBroker`: raise a broker error on the next call to a named method, raise a rate-limit error, and "accept then time out" (store the order, then raise the unknown-result error). Enforce Alpaca's reserved-quantity rule: reject a sell that exceeds position qty minus qty reserved by open sell orders.
+- [x] **1.2.5** — In `indicators.py`, write pure functions: SMA(n), RSI14, ATR14, percent from 52-week high, and average dollar volume over N daily bars (close × volume).
+- [x] **1.2.6** — Add `conftest.py` fixtures: a `FakeBroker` preset with a $100k paper-style account, a liquid symbol `XYZ` priced above $5 with ADV above $20M, an open market clock, and a fixed "now".
+- [x] **1.2.7** — Write `test_indicators.py` with hand-computed values for each function, including short-input behavior. Write `test_boundaries.py`: `FakeBroker()` is an instance of `Broker` at runtime; an AST scan of every `.py` file under `src/trader_broker/` outside `brokers/` finds no import of the `alpaca` package.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_indicators.py` covers every indicator with known values; `test_boundaries.py` covers the FakeBroker runtime Protocol check and the `alpaca` import scan.
-- [ ] **Requirements:**
-    - [ ] "Implement the `Broker` Protocol and keep all broker-specific code inside `brokers/`."
-    - [ ] "`risk.py`, `review.py`, `service.py`, `journal.py`, `report.py` import nothing from `alpaca`; a test greps imports to enforce it."
-    - [ ] "`FakeBroker` enforces Alpaca's reserved-quantity rule: a sell exceeding `qty - qty reserved by open sell orders` is rejected."
-- [ ] **Verify:** `grep -rn "alpaca" src/trader_broker --include=*.py | grep -v "src/trader_broker/brokers/"` prints no import lines.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_indicators.py` covers every indicator with known values; `test_boundaries.py` covers the FakeBroker runtime Protocol check and the `alpaca` import scan.
+- [x] **Requirements:**
+    - [x] "Implement the `Broker` Protocol and keep all broker-specific code inside `brokers/`."
+    - [x] "`risk.py`, `review.py`, `service.py`, `journal.py`, `report.py` import nothing from `alpaca`; a test greps imports to enforce it."
+    - [x] "`FakeBroker` enforces Alpaca's reserved-quantity rule: a sell exceeding `qty - qty reserved by open sell orders` is rejected."
+- [x] **Verify:** `grep -rn "alpaca" src/trader_broker --include=*.py | grep -v "src/trader_broker/brokers/"` prints no import lines.
 
 ---
 

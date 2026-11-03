@@ -37,3 +37,4 @@ PR: (none)
 - 2026-11-03 17:33 - Phase → Implementation
 - 2026-11-03 17:33 - Worktree created from origin/main
 - 2026-11-03 17:36 - Task 1.1 done (d5e4ccd); workspace.md updated with uv commands
+- 2026-11-03 17:45 - Task 1.2 done (559292f)
