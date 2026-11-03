@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 80 / 102 sub-tasks complete
+> **Progress:** 86 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -544,25 +544,25 @@ tests/profile/test_profile_files.py     (create)
 
 **Sub-tasks:**
 
-- [ ] **5.1.1** — Confirm the exact Hermes toolset identifiers (terminal, code execution, file read/write, skill management writes, browser, web search, memory, skills read, MCP server toolset naming) against Hermes v2026.9.24 `website/docs/reference/toolsets-reference.md`. Record each identifier with its source URL in the coder's Final Report so Task 6.1 can cite them. If the source cannot be reached, stop and report it as blocked; do not guess identifiers.
-- [ ] **5.1.2** — Write `profile/config.yaml`: `timezone: America/New_York`; `model` with provider `anthropic` and a model placeholder filled at install; no `fallback_providers`; `mcp_servers.trader_broker` as stdio running `uv run --directory <INSTALL_DIR> trader-broker serve`, with `env` passing through `${...}` every `ALPACA_*`, `REVIEWER_*`, `OPENAI_API_KEY`, `XAI_API_KEY` and `TRADER_BROKER_*` variable plus the other `TRADER_*` caps variables, `trust: full`, `timeout: 300`; toolsets that enable the trader_broker MCP toolset, web search, memory and skills read, and disable terminal, code execution, file read/write, skill management writes and browser (identifiers from 5.1.1); `memory.memory_enabled: true`; approvals and plugins set so no plugin loads. Add comments that explain why there is no fallback and why trust is full.
-- [ ] **5.1.3** — Write `profile/SOUL.md`: an aggressive, disciplined swing-trader persona that hunts momentum and catalysts and cuts losers fast. It states that sizing and caps are enforced by tools (the agent never picks a share count); the agent must state the next earnings date in every thesis; it must avoid holding through earnings unless the thesis is earnings-driven and the size reflects gap risk; it must post concise reports.
-- [ ] **5.1.4** — Write `profile/.env.example` listing every env var from the master plan Interfaces plus the three `TRADER_` limits added in 1.1.3, each with a comment and the default value; mode set to `paper`; ACK left empty.
-- [ ] **5.1.5** — Write `profile/profile_routes.example.yaml`: one Discord route (`guild_id` + `chat_id`) and one Telegram route (group `chat_id`), each mapping to profile `stock-trader`, with a comment warning not to route DM chat ids.
-- [ ] **5.1.6** — Write the config part of `tests/profile/test_profile_files.py`: both YAML files parse; timezone is `America/New_York`; no `fallback_providers`; `trader_broker` server command runs `trader-broker serve` through `uv run --directory`; `trust` is `full` and `timeout` is 300; the env passthrough covers every variable `Settings` reads; the disabled toolset list contains the terminal, code, file and browser identifiers and the enabled list contains trader_broker, web search and memory; `SOUL.md` exists and mentions earnings and the tool-enforced sizing; `.env.example` names every variable `Settings` reads and sets mode `paper`; every route maps to `stock-trader`.
+- [x] **5.1.1** — Confirm the exact Hermes toolset identifiers (terminal, code execution, file read/write, skill management writes, browser, web search, memory, skills read, MCP server toolset naming) against Hermes v2026.9.24 `website/docs/reference/toolsets-reference.md`. Record each identifier with its source URL in the coder's Final Report so Task 6.1 can cite them. If the source cannot be reached, stop and report it as blocked; do not guess identifiers.
+- [x] **5.1.2** — Write `profile/config.yaml`: `timezone: America/New_York`; `model` with provider `anthropic` and a model placeholder filled at install; no `fallback_providers`; `mcp_servers.trader_broker` as stdio running `uv run --directory <INSTALL_DIR> trader-broker serve`, with `env` passing through `${...}` every `ALPACA_*`, `REVIEWER_*`, `OPENAI_API_KEY`, `XAI_API_KEY` and `TRADER_BROKER_*` variable plus the other `TRADER_*` caps variables, `trust: full`, `timeout: 300`; toolsets that enable the trader_broker MCP toolset, web search, memory and skills read, and disable terminal, code execution, file read/write, skill management writes and browser (identifiers from 5.1.1); `memory.memory_enabled: true`; approvals and plugins set so no plugin loads. Add comments that explain why there is no fallback and why trust is full.
+- [x] **5.1.3** — Write `profile/SOUL.md`: an aggressive, disciplined swing-trader persona that hunts momentum and catalysts and cuts losers fast. It states that sizing and caps are enforced by tools (the agent never picks a share count); the agent must state the next earnings date in every thesis; it must avoid holding through earnings unless the thesis is earnings-driven and the size reflects gap risk; it must post concise reports.
+- [x] **5.1.4** — Write `profile/.env.example` listing every env var from the master plan Interfaces plus the three `TRADER_` limits added in 1.1.3, each with a comment and the default value; mode set to `paper`; ACK left empty.
+- [x] **5.1.5** — Write `profile/profile_routes.example.yaml`: one Discord route (`guild_id` + `chat_id`) and one Telegram route (group `chat_id`), each mapping to profile `stock-trader`, with a comment warning not to route DM chat ids.
+- [x] **5.1.6** — Write the config part of `tests/profile/test_profile_files.py`: both YAML files parse; timezone is `America/New_York`; no `fallback_providers`; `trader_broker` server command runs `trader-broker serve` through `uv run --directory`; `trust` is `full` and `timeout` is 300; the env passthrough covers every variable `Settings` reads; the disabled toolset list contains the terminal, code, file and browser identifiers and the enabled list contains trader_broker, web search and memory; `SOUL.md` exists and mentions earnings and the tool-enforced sizing; `.env.example` names every variable `Settings` reads and sets mode `paper`; every route maps to `stock-trader`.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `uv run pytest tests/profile` passes with every check in 5.1.6.
-- [ ] **Requirements:**
-    - [ ] "`config.yaml`: `timezone: America/New_York`; `model` provider anthropic … no `fallback_providers`; `mcp_servers.trader_broker` stdio …; `trust: full`; toolsets: enable … disable …; `memory.memory_enabled: true`."
-    - [ ] "set `mcp_servers.trader_broker.timeout: 300` in profile config."
-    - [ ] "Confirm exact Hermes toolset identifiers against Hermes v2026.9.24 `website/docs/reference/toolsets-reference.md`".
-    - [ ] "`SOUL.md`: aggressive swing-trader persona; states that sizing/caps are enforced by tools, … earnings date in every thesis, … concise reports."
-    - [ ] "`profile_routes.example.yaml`: Discord (guild_id + chat_id) and Telegram (group chat_id) route entries mapping to profile `stock-trader`, with a warning not to route DM chat ids."
-    - [ ] "Env vars (all in `profile/.env.example`)".
-- [ ] **Verify:** The coder's Final Report lists each toolset identifier with its source; `grep -n "fallback_providers" profile/config.yaml` prints only a comment line or nothing.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `uv run pytest tests/profile` passes with every check in 5.1.6.
+- [x] **Requirements:**
+    - [x] "`config.yaml`: `timezone: America/New_York`; `model` provider anthropic … no `fallback_providers`; `mcp_servers.trader_broker` stdio …; `trust: full`; toolsets: enable … disable …; `memory.memory_enabled: true`."
+    - [x] "set `mcp_servers.trader_broker.timeout: 300` in profile config."
+    - [x] "Confirm exact Hermes toolset identifiers against Hermes v2026.9.24 `website/docs/reference/toolsets-reference.md`".
+    - [x] "`SOUL.md`: aggressive swing-trader persona; states that sizing/caps are enforced by tools, … earnings date in every thesis, … concise reports."
+    - [x] "`profile_routes.example.yaml`: Discord (guild_id + chat_id) and Telegram (group chat_id) route entries mapping to profile `stock-trader`, with a warning not to route DM chat ids."
+    - [x] "Env vars (all in `profile/.env.example`)".
+- [x] **Verify:** The coder's Final Report lists each toolset identifier with its source; `grep -n "fallback_providers" profile/config.yaml` prints only a comment line or nothing.
 
 ---
 
