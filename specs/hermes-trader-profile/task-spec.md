@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 95 / 102 sub-tasks complete
+> **Progress:** 102 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -657,19 +657,19 @@ docs/system/architecture.md      (create)
 
 **Sub-tasks:**
 
-- [ ] **6.1.1** — Describe the components and data flow: Hermes `stock-trader` profile → `trader-broker` MCP server → `TraderService` → risk gate, cross-model review, SQLite state, `Broker` adapter (`AlpacaBroker`, `FakeBroker`). Include the module boundary rule (only `brokers/` imports `alpaca`).
-- [ ] **6.1.2** — Document the buy path, the risk gate limits with their env vars and defaults, halts and the kill switch state machine, housekeeping order, client-id idempotency, sell path with leg cancel and re-protection, the review decision rule, the journal settlement, and the go-live report.
-- [ ] **6.1.3** — Document the Hermes profile: disabled and enabled toolsets with the exact identifiers from Task 5.1.1 and their source URL (Hermes v2026.9.24 `website/docs/reference/toolsets-reference.md`), the MCP server config (`trust: full`, `timeout: 300`, no fallback), the cron schedule and the gate script, and `profile_routes` delivery.
-- [ ] **6.1.4** — Document failure modes from the master plan's Error Handling table (state missing, reviewer outage, broker timeout, kill switch) and the live-mode guard.
+- [x] **6.1.1** — Describe the components and data flow: Hermes `stock-trader` profile → `trader-broker` MCP server → `TraderService` → risk gate, cross-model review, SQLite state, `Broker` adapter (`AlpacaBroker`, `FakeBroker`). Include the module boundary rule (only `brokers/` imports `alpaca`).
+- [x] **6.1.2** — Document the buy path, the risk gate limits with their env vars and defaults, halts and the kill switch state machine, housekeeping order, client-id idempotency, sell path with leg cancel and re-protection, the review decision rule, the journal settlement, and the go-live report.
+- [x] **6.1.3** — Document the Hermes profile: disabled and enabled toolsets with the exact identifiers from Task 5.1.1 and their source URL (Hermes v2026.9.24 `website/docs/reference/toolsets-reference.md`), the MCP server config (`trust: full`, `timeout: 300`, no fallback), the cron schedule and the gate script, and `profile_routes` delivery.
+- [x] **6.1.4** — Document failure modes from the master plan's Error Handling table (state missing, reviewer outage, broker timeout, kill switch) and the live-mode guard.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** All existing tests pass; no new tests (documentation only).
-- [ ] **Requirements:**
-    - [ ] "Confirm exact Hermes toolset identifiers … and cite them in `docs/system/architecture.md`."
-    - [ ] "`docs/system/architecture.md`" exists and matches the built code.
-- [ ] **Verify:** Every tool name, env var and CLI subcommand named in `architecture.md` exists in `server.py`, `config.py` or `cli.py` (`grep` each one).
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** All existing tests pass; no new tests (documentation only).
+- [x] **Requirements:**
+    - [x] "Confirm exact Hermes toolset identifiers … and cite them in `docs/system/architecture.md`."
+    - [x] "`docs/system/architecture.md`" exists and matches the built code.
+- [x] **Verify:** Every tool name, env var and CLI subcommand named in `architecture.md` exists in `server.py`, `config.py` or `cli.py` (`grep` each one).
 
 ---
 
@@ -690,18 +690,18 @@ CLAUDE.md        (create)
 
 **Sub-tasks:**
 
-- [ ] **6.2.1** — Rewrite `README.md` as a setup guide: what the project does; requirements; install on the server with `scripts/install-profile.sh` (dry run first); fill `.env`; `trader-broker init-state`; run the paper smoke test (`trader-broker smoke-test` or `uv run pytest -m paper`); apply the printed `profile_routes` snippet to the default profile by hand; enable the cron jobs; the manual Hermes end-to-end install checklist; `trader-broker status`, `report` and `reset-kill-switch`; the go-live bar and the live-mode flag and ACK.
-- [ ] **6.2.2** — Write `AGENTS.md`: repo layout, the gate commands, the module boundary rule, the rule that mode defaults to paper, the rule that no MCP tool may change caps, mode, kill switch or credentials, and a pointer to `docs/system/architecture.md`.
-- [ ] **6.2.3** — Write `CLAUDE.md` that imports `@AGENTS.md`.
+- [x] **6.2.1** — Rewrite `README.md` as a setup guide: what the project does; requirements; install on the server with `scripts/install-profile.sh` (dry run first); fill `.env`; `trader-broker init-state`; run the paper smoke test (`trader-broker smoke-test` or `uv run pytest -m paper`); apply the printed `profile_routes` snippet to the default profile by hand; enable the cron jobs; the manual Hermes end-to-end install checklist; `trader-broker status`, `report` and `reset-kill-switch`; the go-live bar and the live-mode flag and ACK.
+- [x] **6.2.2** — Write `AGENTS.md`: repo layout, the gate commands, the module boundary rule, the rule that mode defaults to paper, the rule that no MCP tool may change caps, mode, kill switch or credentials, and a pointer to `docs/system/architecture.md`.
+- [x] **6.2.3** — Write `CLAUDE.md` that imports `@AGENTS.md`.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** All existing tests pass; no new tests (documentation only).
-- [ ] **Requirements:**
-    - [ ] "README.md — currently "# hermes-stock-trader" only" is replaced by the setup guide.
-    - [ ] "AGENTS.md, CLAUDE.md (imports @AGENTS.md)".
-    - [ ] "Hermes end-to-end … covered by install checklist in README".
-- [ ] **Verify:** `grep -n "@AGENTS.md" CLAUDE.md` matches; every command in the README exists (`uv run trader-broker --help` lists it, or the script file exists).
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** All existing tests pass; no new tests (documentation only).
+- [x] **Requirements:**
+    - [x] "README.md — currently "# hermes-stock-trader" only" is replaced by the setup guide.
+    - [x] "AGENTS.md, CLAUDE.md (imports @AGENTS.md)".
+    - [x] "Hermes end-to-end … covered by install checklist in README".
+- [x] **Verify:** `grep -n "@AGENTS.md" CLAUDE.md` matches; every command in the README exists (`uv run trader-broker --help` lists it, or the script file exists).
 
 <!-- END OF SPEC -->

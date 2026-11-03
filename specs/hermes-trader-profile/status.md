@@ -9,7 +9,7 @@ PR: (none)
 
 - [x] **Planning**
 - [x] **Task Generation**
-- [ ] **Implementation**
+- [x] **Implementation**
 - [ ] **Testing**
 - [ ] **Documentation**
 - [ ] **Review**
@@ -52,3 +52,6 @@ PR: (none)
 - 2026-11-03 18:46 - Task 5.1 done (9e4f0ff)
 - 2026-11-03 18:53 - Task 5.2 done (4f2d21e). Orchestrator decision: Hermes v2026.9.24 cron create has no --timezone/--grace-minutes; installer uses profile timezone + Hermes default grace (spec 5.3.3 corrected)
 - 2026-11-03 19:00 - Task 5.3 done (bb81a9b)
+- 2026-11-03 19:06 - Task 6.1 done (aa47912)
+- 2026-11-03 19:09 - Task 6.2 done (b563f36); Implementation complete, 412 tests green
+- 2026-11-03 19:09 - Phase → Testing
