@@ -11,7 +11,7 @@ PR: (none)
 - [x] **Task Generation**
 - [x] **Implementation**
 - [x] **Testing**
-- [ ] **Documentation**
+- [x] **Documentation**
 - [ ] **Review**
 - [ ] **Wrap-up**
 - [ ] **PR**
@@ -58,3 +58,5 @@ PR: (none)
 - 2026-11-03 19:25 - Tester done (8d2c304): 519 passed, 1 strict xfail; found bugs 1-2 (unprotected positions), obs 3-7; dispatching fix coder
 - 2026-11-03 19:35 - Tester bugs fixed (6325800): 550 passed. Testing complete; P1/P2 (paper keys) and F3/F4/D1 (Hermes server) deferred to user
 - 2026-11-03 19:35 - Phase → Documentation
+- 2026-11-03 19:37 - Documentation: docs updated (0d0f4f3: architecture.md, AGENTS.md)
+- 2026-11-03 19:37 - Phase → Review
