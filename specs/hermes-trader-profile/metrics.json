@@ -5,10 +5,10 @@
   "harnessVersion": "0.1.0",
   "rubricVersion": "1.0",
   "specName": "hermes-trader-profile",
-  "generatedAt": "2026-11-03T19:36:42Z",
+  "generatedAt": "2026-11-03T19:38:41Z",
   "specStatus": "in-progress",
   "velocity": {
-    "wallClockMinutes": 383,
+    "wallClockMinutes": 385,
     "timeToPrMinutes": null,
     "sessionCount": 1,
     "phaseDurationsMinutes": {
@@ -17,12 +17,12 @@
       "implementation": 96,
       "testing": 26,
       "review": 0,
-      "houseKeeping": 0,
+      "houseKeeping": 2,
       "postMortem": 0
     }
   },
   "lifecycle": {
-    "furthestPhase": "Testing",
+    "furthestPhase": "Documentation",
     "stalled": false
   },
   "throughput": {
@@ -34,7 +34,7 @@
     "hardGateInterventions": 0,
     "resumeCount": 0,
     "reviewFixCycles": 0,
-    "subAgentDispatches": 28,
+    "subAgentDispatches": 29,
     "postMortemActionItems": 0,
     "autonomousCompletion": false,
     "postPrRevisionCycles": 0
@@ -64,7 +64,7 @@
     "filesCreated": 73,
     "filesModified": 1,
     "filesDeleted": 0,
-    "linesAdded": 17848,
+    "linesAdded": 17849,
     "linesRemoved": 1
   },
   "scopeDelta": {
@@ -77,7 +77,7 @@
     "prUrls": []
   },
   "parseHealth": {
-    "eventsValid": 34,
+    "eventsValid": 36,
     "eventsMalformed": 0,
     "eventsUnknownType": 0,
     "eventsReviewRounds": 0,
