@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 14 / 102 sub-tasks complete
+> **Progress:** 32 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -126,24 +126,24 @@ tests/unit/test_halts.py       (create)
 
 **Sub-tasks:**
 
-- [ ] **1.3.1** — Define `Caps` built from `Settings` (risk %, symbol cap %, daily loss %, kill drawdown %, min price, min ADV, entry slippage %, no-entry-before-close minutes, min and max stop distance).
-- [ ] **1.3.2** — Write the entry price rule: the proposal's limit price when given, else ask × (1 + entry_slippage_pct). Write one price-rounding helper that rounds to $0.01 for prices ≥ $1; use it for entry, stop and target.
-- [ ] **1.3.3** — Write `size_position()`: `qty = floor(min(risk_pct*equity/(entry-stop), (symbol_cap_pct*equity - existing_symbol_value)/entry, available_cash/entry))`, with `existing_symbol_value` = position market value + notional of open buy orders for that symbol and `available_cash` = cash − open buy order notional (all symbols). Reject `stop >= entry` (`stop_invalid`), `target <= entry + 0.01` (`target_invalid`), stop distance below the minimum or above the maximum (`stop_invalid`, reason text names the distance rule), and `qty < 1` (`qty_zero`). Return a `SizedOrder` with qty, entry, stop, target, notional, % equity, $ risk, % equity risk, and which limit bound the size.
-- [ ] **1.3.4** — Write `check_entry()` returning a `RiskDecision` that lists every failing rule, not only the first: `leverage` (positions market value + open buy notional + new notional > equity), `cash` (new notional > available cash), `symbol_cap`, `risk_size`, `min_price`, `min_adv` (from SIP daily bars ending at the previous close, passed in), `market_closed` (clock not open), `too_late` (less than `no_entry_before_close_minutes` before `next_close`), `not_tradable` (asset missing, inactive, not tradable or not a US equity).
-- [ ] **1.3.5** — Write `check_halts()`: given account equity, broker `last_equity`, the stored peak, kill switch, daily halt date and today's trading date, return the new peak (`max(peak, equity)`), whether to set `kill_switch` (`equity <= peak*(1-kill_drawdown_pct)`), whether to set `daily_halt_date = today` (`(equity-last_equity)/last_equity <= -daily_loss_pct`), and the blocking failures (`daily_halt` while `daily_halt_date == today`, `kill_switch` while set). It never clears the kill switch.
-- [ ] **1.3.6** — Write `test_sizing.py` with the master plan rows: 20% cap binds over 3% risk (equity 100k, entry 100, stop 90 → 200); tight stop (100/99 → 200, risk $200); wide stop (50/40 → 300); cash binds (cash 5k, 100/95 → 50); existing $15k position (→ max add 50); open $15k entry order on the same symbol (→ max add 50); open buy orders on other symbols reduce available cash; `stop_invalid`, `target_invalid` (entry 100, target 100), stop distance 0.4% and 26%, `qty_zero`.
-- [ ] **1.3.7** — Write `test_risk.py`: hand-built `SizedOrder` with positions 95k + pending 3k + new 5k → `leverage`; price 4.99 → `min_price`; ADV $5M → `min_adv`; 20 minutes before close → `too_late`; closed clock → `market_closed`; inactive asset → `not_tradable`; a case with three failing rules names all three. Write `test_halts.py`: last_equity 100k, equity 95.9k → daily halt set; halt date equal to today still blocks at −3%; next trading date clears it; peak 120k, equity 95.9k → kill switch set; peak rises with equity; kill switch stays set when equity recovers.
+- [x] **1.3.1** — Define `Caps` built from `Settings` (risk %, symbol cap %, daily loss %, kill drawdown %, min price, min ADV, entry slippage %, no-entry-before-close minutes, min and max stop distance).
+- [x] **1.3.2** — Write the entry price rule: the proposal's limit price when given, else ask × (1 + entry_slippage_pct). Write one price-rounding helper that rounds to $0.01 for prices ≥ $1; use it for entry, stop and target.
+- [x] **1.3.3** — Write `size_position()`: `qty = floor(min(risk_pct*equity/(entry-stop), (symbol_cap_pct*equity - existing_symbol_value)/entry, available_cash/entry))`, with `existing_symbol_value` = position market value + notional of open buy orders for that symbol and `available_cash` = cash − open buy order notional (all symbols). Reject `stop >= entry` (`stop_invalid`), `target <= entry + 0.01` (`target_invalid`), stop distance below the minimum or above the maximum (`stop_invalid`, reason text names the distance rule), and `qty < 1` (`qty_zero`). Return a `SizedOrder` with qty, entry, stop, target, notional, % equity, $ risk, % equity risk, and which limit bound the size.
+- [x] **1.3.4** — Write `check_entry()` returning a `RiskDecision` that lists every failing rule, not only the first: `leverage` (positions market value + open buy notional + new notional > equity), `cash` (new notional > available cash), `symbol_cap`, `risk_size`, `min_price`, `min_adv` (from SIP daily bars ending at the previous close, passed in), `market_closed` (clock not open), `too_late` (less than `no_entry_before_close_minutes` before `next_close`), `not_tradable` (asset missing, inactive, not tradable or not a US equity).
+- [x] **1.3.5** — Write `check_halts()`: given account equity, broker `last_equity`, the stored peak, kill switch, daily halt date and today's trading date, return the new peak (`max(peak, equity)`), whether to set `kill_switch` (`equity <= peak*(1-kill_drawdown_pct)`), whether to set `daily_halt_date = today` (`(equity-last_equity)/last_equity <= -daily_loss_pct`), and the blocking failures (`daily_halt` while `daily_halt_date == today`, `kill_switch` while set). It never clears the kill switch.
+- [x] **1.3.6** — Write `test_sizing.py` with the master plan rows: 20% cap binds over 3% risk (equity 100k, entry 100, stop 90 → 200); tight stop (100/99 → 200, risk $200); wide stop (50/40 → 300); cash binds (cash 5k, 100/95 → 50); existing $15k position (→ max add 50); open $15k entry order on the same symbol (→ max add 50); open buy orders on other symbols reduce available cash; `stop_invalid`, `target_invalid` (entry 100, target 100), stop distance 0.4% and 26%, `qty_zero`.
+- [x] **1.3.7** — Write `test_risk.py`: hand-built `SizedOrder` with positions 95k + pending 3k + new 5k → `leverage`; price 4.99 → `min_price`; ADV $5M → `min_adv`; 20 minutes before close → `too_late`; closed clock → `market_closed`; inactive asset → `not_tradable`; a case with three failing rules names all three. Write `test_halts.py`: last_equity 100k, equity 95.9k → daily halt set; halt date equal to today still blocks at −3%; next trading date clears it; peak 120k, equity 95.9k → kill switch set; peak rises with equity; kill switch stays set when equity recovers.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_sizing.py`, `test_risk.py`, `test_halts.py` pass with every scenario in sub-tasks 1.3.6 and 1.3.7.
-- [ ] **Requirements:**
-    - [ ] "Size every buy in code" with the exact formula; defaults `risk_pct=0.03`, `symbol_cap_pct=0.20`; whole shares only.
-    - [ ] "Enforce entry caps in `risk.check_entry` and return a typed `RiskDecision` with every failing rule named."
-    - [ ] "Enforce halts in `risk.check_halts`" (daily halt latch, kill switch latch).
-    - [ ] Prices "rounded to $0.01 (≥$1)".
-- [ ] **Verify:** `grep -nE "^(import|from) " src/trader_broker/risk.py` shows only standard library, pydantic and `trader_broker` imports (no I/O modules such as `sqlite3`, `httpx`, `openai`).
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_sizing.py`, `test_risk.py`, `test_halts.py` pass with every scenario in sub-tasks 1.3.6 and 1.3.7.
+- [x] **Requirements:**
+    - [x] "Size every buy in code" with the exact formula; defaults `risk_pct=0.03`, `symbol_cap_pct=0.20`; whole shares only.
+    - [x] "Enforce entry caps in `risk.check_entry` and return a typed `RiskDecision` with every failing rule named."
+    - [x] "Enforce halts in `risk.check_halts`" (daily halt latch, kill switch latch).
+    - [x] Prices "rounded to $0.01 (≥$1)".
+- [x] **Verify:** `grep -nE "^(import|from) " src/trader_broker/risk.py` shows only standard library, pydantic and `trader_broker` imports (no I/O modules such as `sqlite3`, `httpx`, `openai`).
 
 ---
 
@@ -164,21 +164,21 @@ tests/unit/test_state.py       (create)
 
 **Sub-tasks:**
 
-- [ ] **1.4.1** — Define the schema at `<state_dir>/<mode>/state.db`: a single-row settings table (`equity_peak`, `kill_switch`, `daily_halt_date`, `paper_start_date`, schema version); `orders` (`client_order_id` primary key, broker order id, symbol, side, role such as entry/stop/take-profit/sell/repair, status, at-placement sizing snapshot, journal entry link, created time); `journal`; `reviews` (packet hash, both raw verdicts, decision, final order, journal link); `blocks` (time, tool, symbol, reasons) for the report and `get_risk_status`; `integrity_violations` (time, kind, subject, detail).
-- [ ] **1.4.2** — Write open semantics: opening a missing, unreadable or schema-invalid file raises a state-unavailable error and creates nothing. Write `init_state(path, equity, force=False)`: refuses when a DB exists unless `force`; sets `paper_start_date` to today and `equity_peak` to the given equity.
-- [ ] **1.4.3** — Write store methods: record an order intent (client id + sizing) before submission; update broker id and status; look up by client id; read and write peak, kill switch and daily halt date; `reset_kill_switch(current_equity)` clears the switch and sets the peak to current equity; insert and query journal rows; insert reviews; insert and list recent blocks; insert integrity violations with de-duplication on (kind, subject) and count them.
-- [ ] **1.4.4** — Add a `conftest.py` fixture that creates an initialized temp state DB, and one that points at a missing DB.
-- [ ] **1.4.5** — Write `test_state.py`: missing file → unavailable and no file created; corrupt file → unavailable; `init_state` refuses an existing DB, succeeds with `force`; peak, kill switch and halt date survive close and reopen; `reset_kill_switch` clears and resets the peak; an order intent exists before its status update; the same integrity violation recorded twice counts once.
+- [x] **1.4.1** — Define the schema at `<state_dir>/<mode>/state.db`: a single-row settings table (`equity_peak`, `kill_switch`, `daily_halt_date`, `paper_start_date`, schema version); `orders` (`client_order_id` primary key, broker order id, symbol, side, role such as entry/stop/take-profit/sell/repair, status, at-placement sizing snapshot, journal entry link, created time); `journal`; `reviews` (packet hash, both raw verdicts, decision, final order, journal link); `blocks` (time, tool, symbol, reasons) for the report and `get_risk_status`; `integrity_violations` (time, kind, subject, detail).
+- [x] **1.4.2** — Write open semantics: opening a missing, unreadable or schema-invalid file raises a state-unavailable error and creates nothing. Write `init_state(path, equity, force=False)`: refuses when a DB exists unless `force`; sets `paper_start_date` to today and `equity_peak` to the given equity.
+- [x] **1.4.3** — Write store methods: record an order intent (client id + sizing) before submission; update broker id and status; look up by client id; read and write peak, kill switch and daily halt date; `reset_kill_switch(current_equity)` clears the switch and sets the peak to current equity; insert and query journal rows; insert reviews; insert and list recent blocks; insert integrity violations with de-duplication on (kind, subject) and count them.
+- [x] **1.4.4** — Add a `conftest.py` fixture that creates an initialized temp state DB, and one that points at a missing DB.
+- [x] **1.4.5** — Write `test_state.py`: missing file → unavailable and no file created; corrupt file → unavailable; `init_state` refuses an existing DB, succeeds with `force`; peak, kill switch and halt date survive close and reopen; `reset_kill_switch` clears and resets the peak; an order intent exists before its status update; the same integrity violation recorded twice counts once.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_state.py` passes with every case in 1.4.5.
-- [ ] **Requirements:**
-    - [ ] "`state.py` — SQLite store: equity_peak, kill_switch, daily_halt_date, paper_start_date, orders (client_order_id idempotency), journal, reviews".
-    - [ ] "State DB missing/corrupt → Fail closed"; "`trader-broker init-state` (refuses if a DB exists unless `--force`)".
-    - [ ] "`reset-kill-switch` … clears it and resets the peak to current equity."
-- [ ] **Verify:** Run the test suite, then confirm no `state.db` file was created outside pytest temp directories (`find . -name "*.db" -not -path "./.venv/*"` prints nothing).
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_state.py` passes with every case in 1.4.5.
+- [x] **Requirements:**
+    - [x] "`state.py` — SQLite store: equity_peak, kill_switch, daily_halt_date, paper_start_date, orders (client_order_id idempotency), journal, reviews".
+    - [x] "State DB missing/corrupt → Fail closed"; "`trader-broker init-state` (refuses if a DB exists unless `--force`)".
+    - [x] "`reset-kill-switch` … clears it and resets the peak to current equity."
+- [x] **Verify:** Run the test suite, then confirm no `state.db` file was created outside pytest temp directories (`find . -name "*.db" -not -path "./.venv/*"` prints nothing).
 
 ---
 
@@ -200,23 +200,23 @@ tests/unit/test_alpaca_adapter.py     (create)
 
 **Sub-tasks:**
 
-- [ ] **2.1.1** — Build `AlpacaBroker` from `Settings`: `TradingClient` (paper flag from mode), `StockHistoricalDataClient`, `NewsClient`, `ScreenerClient`.
-- [ ] **2.1.2** — Implement the read methods and map SDK objects to `models.py` types: account (`equity`, `last_equity`, `cash`, `buying_power`), positions, orders including bracket legs, `get_order_by_client_id` (not found → `None`), asset, quote (IEX feed), `get_daily_bars` (SIP feed with the end at the previous close when `sip_history=True`), `get_bars`, news, movers, clock, calendar, portfolio history, fills.
-- [ ] **2.1.3** — Implement the write methods: `submit_bracket_buy` (order class bracket, limit entry, `gtc`, take-profit limit, stop-loss stop, whole-share qty, client order id), `submit_sell` (market, `day`), `submit_stop` (`gtc`), `replace_stop`, `cancel_order`. Send prices rounded to $0.01 in the format Alpaca accepts (strings, per `POST /v2/orders`).
-- [ ] **2.1.4** — Map SDK and HTTP errors to the broker error types from Task 1.2. A write timeout raises the unknown-result error. Reads retry on HTTP 429 three times with 1 s, 2 s, 4 s backoff; writes never retry.
-- [ ] **2.1.5** — Add a static check that `AlpacaBroker` satisfies `Broker`, so `uv run mypy src` fails if a signature drifts.
-- [ ] **2.1.6** — Write `test_alpaca_adapter.py` with stubbed SDK client objects (no network): bracket request fields and price strings; a 429 on a read retries with patched sleep and then succeeds; a 429 on a write is not retried; a write timeout raises unknown-result; client id not found → `None`.
+- [x] **2.1.1** — Build `AlpacaBroker` from `Settings`: `TradingClient` (paper flag from mode), `StockHistoricalDataClient`, `NewsClient`, `ScreenerClient`.
+- [x] **2.1.2** — Implement the read methods and map SDK objects to `models.py` types: account (`equity`, `last_equity`, `cash`, `buying_power`), positions, orders including bracket legs, `get_order_by_client_id` (not found → `None`), asset, quote (IEX feed), `get_daily_bars` (SIP feed with the end at the previous close when `sip_history=True`), `get_bars`, news, movers, clock, calendar, portfolio history, fills.
+- [x] **2.1.3** — Implement the write methods: `submit_bracket_buy` (order class bracket, limit entry, `gtc`, take-profit limit, stop-loss stop, whole-share qty, client order id), `submit_sell` (market, `day`), `submit_stop` (`gtc`), `replace_stop`, `cancel_order`. Send prices rounded to $0.01 in the format Alpaca accepts (strings, per `POST /v2/orders`).
+- [x] **2.1.4** — Map SDK and HTTP errors to the broker error types from Task 1.2. A write timeout raises the unknown-result error. Reads retry on HTTP 429 three times with 1 s, 2 s, 4 s backoff; writes never retry.
+- [x] **2.1.5** — Add a static check that `AlpacaBroker` satisfies `Broker`, so `uv run mypy src` fails if a signature drifts.
+- [x] **2.1.6** — Write `test_alpaca_adapter.py` with stubbed SDK client objects (no network): bracket request fields and price strings; a 429 on a read retries with patched sleep and then succeeds; a 429 on a write is not retried; a write timeout raises unknown-result; client id not found → `None`.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0 (mypy covers the Protocol conformance check).
-- [ ] **Tests:** `test_alpaca_adapter.py` passes with every case in 2.1.6; `test_boundaries.py` still passes.
-- [ ] **Requirements:**
-    - [ ] "`FakeBroker` and `AlpacaBroker` both satisfy the Protocol (mypy check + runtime test for FakeBroker)."
-    - [ ] "Place every buy as a bracket order: entry limit … with `time_in_force=gtc`, take-profit limit at target, stop-loss stop at stop."
-    - [ ] "Prices rounded to $0.01 (≥$1) and sent in the broker's accepted format."
-    - [ ] "Alpaca 429 rate limit → Backoff retry ×3 (1s,2s,4s) for reads; writes go through client-id lookup path."
-- [ ] **Verify:** `grep -rln "^from alpaca\|^import alpaca" src/` lists only `src/trader_broker/brokers/alpaca.py`.
+- [x] **Build:** Gate commands exit 0 (mypy covers the Protocol conformance check).
+- [x] **Tests:** `test_alpaca_adapter.py` passes with every case in 2.1.6; `test_boundaries.py` still passes.
+- [x] **Requirements:**
+    - [x] "`FakeBroker` and `AlpacaBroker` both satisfy the Protocol (mypy check + runtime test for FakeBroker)."
+    - [x] "Place every buy as a bracket order: entry limit … with `time_in_force=gtc`, take-profit limit at target, stop-loss stop at stop."
+    - [x] "Prices rounded to $0.01 (≥$1) and sent in the broker's accepted format."
+    - [x] "Alpaca 429 rate limit → Backoff retry ×3 (1s,2s,4s) for reads; writes go through client-id lookup path."
+- [x] **Verify:** `grep -rln "^from alpaca\|^import alpaca" src/` lists only `src/trader_broker/brokers/alpaca.py`.
 
 ---
 
