@@ -98,3 +98,33 @@ Selected: every finding above except P28 (observation).
   - `Mover.percent_change` → `change_pct` (a fraction)
   - `HousekeepingResult.equity: EquityStatus` → `reading: AccountReading`
   - `get_risk_status` becomes destructive; `get_journal` becomes a write tool
+
+## Round 2: scoped re-review (cycle 2, fix diff 0d0f4f3..51b834f)
+Fix commits:
+- 6701355: profile, scripts and docs. 17 findings fixed.
+- 905dce4: src. 23 findings fixed.
+- 51b834f: doc sync.
+
+Both seats report that 36 of the 37 selected findings are resolved, along with N1 and N2. The cycle 2 review found the following problems, all in the new code:
+
+| ID | Sev | Seats | Class | Finding | Status |
+|----|-----|-------|-------|---------|--------|
+| P39 | medium | B | logic | P5 is only partly fixed. `_reprotect` re-reads once; a stop still in `pending_cancel` reserves the shares, so the broker refuses the repair stop, and nothing protects the shares until the next tool call. Reproduced: the repair fails with `delay_cancels(reads=12)`. | open: surfaced at the two-round cap |
+| P40 | medium | B | logic | Introduced by the P8 fix. A standalone `tb-` repair stop stays working after a bracket leg exits the whole position, because `_cancel_excess_stops` only looks at held positions. Reproduced. | open: surfaced at the two-round cap |
+| P41 | medium | A | logic | Introduced by the P8 fix. `_stop_covered_qty` ignores fills on the sibling take-profit leg, so it overcounts cover, and `_cancel_excess_stops` cancels a needed standalone stop. 40 shares are then silently unprotected. Reproduced. | open: surfaced at the two-round cap |
+| P42 | medium | B | logic | Introduced by the P1 fix. `get_orders("open")` reads only the newest 500 orders of any status, so the exit tools can't see older GTC stops. | open: surfaced at the two-round cap |
+| P43 | medium | A | logic | Introduced by N2. The account-lock wait (300 s) equals Hermes's MCP call timeout. The agent never sees `busy`, and the queued `propose_buy` can place an order after the agent was told the call timed out. | open: surfaced at the two-round cap |
+| P44 | low | B | logic | Introduced by the P6 fix. `_adopt` can journal an entry twice if the status write failed. | open: surfaced at the two-round cap |
+
+review_round 2: medium 5, low 1, crossLens 0.
+
+## Final checks
+
+- Check: uv run ruff check . → pass
+- Check: uv run ruff format --check . → pass
+- Check: uv run mypy src → pass
+- Check: uv run pytest -m 'not paper' -q → pass
+Final checks: pass
+
+## Two-round cap
+P39–P43 are money-safety defects in the code the fix round added. P39, P40 and P41 were reproduced. Per Fix Once step 7, no second fix set runs on its own initiative, so these go to the user for a decision.
