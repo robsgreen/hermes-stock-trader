@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 73 / 102 sub-tasks complete
+> **Progress:** 80 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -500,26 +500,26 @@ tests/unit/test_cli.py               (create)
 
 **Sub-tasks:**
 
-- [ ] **4.3.1** — In `server.py`, build a FastMCP server over `TraderService` with exactly these tools. Read tools, `readOnlyHint: true`: `get_account`, `get_positions`, `get_orders`, `get_quote(symbol)`, `get_bars(symbol, timeframe, limit)`, `get_news(symbols?, limit)`, `get_movers(limit)`, `get_clock`, `get_risk_status`, `get_journal(status?, limit)`. Write tools, `readOnlyHint: false`: `propose_buy`, `sell`, `close_position`, `tighten_stop`, `cancel_entry_order`, `journal_note`; `destructiveHint: true` for `sell`, `close_position`, `cancel_entry_order`; `destructiveHint: false` for `propose_buy`, `tighten_stop`, `journal_note`. No tool changes caps, mode, kill switch or credentials.
-- [ ] **4.3.2** — Every tool runs the equity refresh; write tools and `get_risk_status` run housekeeping first. Tool results are JSON-serializable dicts; errors return a structured reason instead of a traceback.
-- [ ] **4.3.3** — Add CLI subcommands: `serve` (loads settings with the live guard and the `serve` check, builds `AlpacaBroker`, reviewers and state, runs the stdio server; on a config error prints the message and exits non-zero); `status` (prints `get_risk_status` for humans); `init-state [--force]`; `reset-kill-switch` (reads current equity, clears the switch, resets the peak); `report [--json]`.
-- [ ] **4.3.4** — Add `market-open-gate`: compute today's date in `America/New_York`, call `Broker.get_calendar(today, today)`, print `{"wakeAgent": true}` as the last stdout line when today is a trading session, `{"wakeAgent": false}` otherwise; never check whether the market is open right now; exit 0 either way; on an API error print `{"wakeAgent": true}`.
-- [ ] **4.3.5** — Add structured JSON logging to stderr and to the rotating file `<state_dir>/<mode>/logs/trader-broker.log` for every tool call, risk decision, review decision and order. Redact API keys and secrets.
-- [ ] **4.3.6** — Write `test_server_tools.py`: the registered tool name set equals the sixteen names exactly; each tool's `readOnlyHint` and `destructiveHint` match 4.3.1; a write tool call triggers housekeeping and a read tool call does not.
-- [ ] **4.3.7** — Write `test_cli.py`: `serve` in live mode without ACK exits non-zero with a message; market gate at 09:00 on a trading day → true; holiday → false; weekend → false; early-close day at 15:45 → true; calendar API error → true; in every case the JSON is the last line and the exit code is 0; `init-state` refuses an existing DB and succeeds with `--force`; `reset-kill-switch` clears the switch and resets the peak to current equity; a log line for a tool call contains no configured secret value.
+- [x] **4.3.1** — In `server.py`, build a FastMCP server over `TraderService` with exactly these tools. Read tools, `readOnlyHint: true`: `get_account`, `get_positions`, `get_orders`, `get_quote(symbol)`, `get_bars(symbol, timeframe, limit)`, `get_news(symbols?, limit)`, `get_movers(limit)`, `get_clock`, `get_risk_status`, `get_journal(status?, limit)`. Write tools, `readOnlyHint: false`: `propose_buy`, `sell`, `close_position`, `tighten_stop`, `cancel_entry_order`, `journal_note`; `destructiveHint: true` for `sell`, `close_position`, `cancel_entry_order`; `destructiveHint: false` for `propose_buy`, `tighten_stop`, `journal_note`. No tool changes caps, mode, kill switch or credentials.
+- [x] **4.3.2** — Every tool runs the equity refresh; write tools and `get_risk_status` run housekeeping first. Tool results are JSON-serializable dicts; errors return a structured reason instead of a traceback.
+- [x] **4.3.3** — Add CLI subcommands: `serve` (loads settings with the live guard and the `serve` check, builds `AlpacaBroker`, reviewers and state, runs the stdio server; on a config error prints the message and exits non-zero); `status` (prints `get_risk_status` for humans); `init-state [--force]`; `reset-kill-switch` (reads current equity, clears the switch, resets the peak); `report [--json]`.
+- [x] **4.3.4** — Add `market-open-gate`: compute today's date in `America/New_York`, call `Broker.get_calendar(today, today)`, print `{"wakeAgent": true}` as the last stdout line when today is a trading session, `{"wakeAgent": false}` otherwise; never check whether the market is open right now; exit 0 either way; on an API error print `{"wakeAgent": true}`.
+- [x] **4.3.5** — Add structured JSON logging to stderr and to the rotating file `<state_dir>/<mode>/logs/trader-broker.log` for every tool call, risk decision, review decision and order. Redact API keys and secrets.
+- [x] **4.3.6** — Write `test_server_tools.py`: the registered tool name set equals the sixteen names exactly; each tool's `readOnlyHint` and `destructiveHint` match 4.3.1; a write tool call triggers housekeeping and a read tool call does not.
+- [x] **4.3.7** — Write `test_cli.py`: `serve` in live mode without ACK exits non-zero with a message; market gate at 09:00 on a trading day → true; holiday → false; weekend → false; early-close day at 15:45 → true; calendar API error → true; in every case the JSON is the last line and the exit code is 0; `init-state` refuses an existing DB and succeeds with `--force`; `reset-kill-switch` clears the switch and resets the peak to current equity; a log line for a tool call contains no configured secret value.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `test_server_tools.py` and `test_cli.py` pass with every case in 4.3.6 and 4.3.7; the full unit suite passes with no network.
-- [ ] **Requirements:**
-    - [ ] "Expose exactly these MCP tools from `server.py`; no others" with the stated annotations; "`test_server_tools.py` asserts the tool name set and annotations exactly."; "No tool changes caps, mode, kill switch, or credentials."
-    - [ ] "`trader-broker market-open-gate` prints `{"wakeAgent": true}` as its last stdout line when today … is a trading session … Exits 0 either way; on API error prints wakeAgent true." with all five listed tests.
-    - [ ] "Missing env var / live without ACK → Server exits non-zero at start with message".
-    - [ ] CLI subcommands: serve, status, init-state, reset-kill-switch, report, market-open-gate, smoke-test.
-    - [ ] SHOULD: "Structured JSON logs to stderr and to `<state_dir>/<mode>/logs/trader-broker.log` (rotating) … (never log secrets)."; MAY: `trader-broker status`.
-    - [ ] "Unit tests cover every MUST above with FakeBroker and FakeReviewer; `uv run pytest -m "not paper"` passes with no network."
-- [ ] **Verify:** `uv run trader-broker --help` lists all seven subcommands; `TRADER_BROKER_MODE=live uv run trader-broker serve` exits non-zero and prints a message naming `TRADER_BROKER_LIVE_ACK`.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `test_server_tools.py` and `test_cli.py` pass with every case in 4.3.6 and 4.3.7; the full unit suite passes with no network.
+- [x] **Requirements:**
+    - [x] "Expose exactly these MCP tools from `server.py`; no others" with the stated annotations; "`test_server_tools.py` asserts the tool name set and annotations exactly."; "No tool changes caps, mode, kill switch, or credentials."
+    - [x] "`trader-broker market-open-gate` prints `{"wakeAgent": true}` as its last stdout line when today … is a trading session … Exits 0 either way; on API error prints wakeAgent true." with all five listed tests.
+    - [x] "Missing env var / live without ACK → Server exits non-zero at start with message".
+    - [x] CLI subcommands: serve, status, init-state, reset-kill-switch, report, market-open-gate, smoke-test.
+    - [x] SHOULD: "Structured JSON logs to stderr and to `<state_dir>/<mode>/logs/trader-broker.log` (rotating) … (never log secrets)."; MAY: `trader-broker status`.
+    - [x] "Unit tests cover every MUST above with FakeBroker and FakeReviewer; `uv run pytest -m "not paper"` passes with no network."
+- [x] **Verify:** `uv run trader-broker --help` lists all seven subcommands; `TRADER_BROKER_MODE=live uv run trader-broker serve` exits non-zero and prints a message naming `TRADER_BROKER_LIVE_ACK`.
 
 ---
 
