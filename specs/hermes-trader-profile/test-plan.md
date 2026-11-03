@@ -82,7 +82,7 @@ Acceptance-level checklist: what must work when the spec is done. Each item maps
 |---|---|---|---|
 | F1 | Profile files are valid: `config.yaml` (timezone, anthropic model, no fallback, `trust: full`, `timeout: 300`, disabled terminal/code/file/browser toolsets), `SOUL.md`, five skills with Hermes frontmatter, five cron jobs with the stated times, grace values and gate script, routes mapped to `stock-trader`. | Automated | Hermes profile |
 | F2 | `install-profile.sh --dry-run` writes nothing; a real run creates the `stock-trader` profile, never overwrites `.env`, creates each cron job once and paused unless `--enable-jobs`, prints the `profile_routes` snippet, and never edits the default profile. | Automated (stubs) | Installer |
-| F3 | On the user's server: the installer runs, `init-state` and `smoke-test` pass, the routes snippet is applied by hand, and a manual run of the `stock-trader` profile can call `mcp_trader_broker_get_risk_status` but has no terminal, code or file tools. | Manual | Hermes end-to-end (README checklist) |
+| F3 | On the user's server: the installer runs, `init-state` and `smoke-test` pass, the routes snippet is applied by hand, and a manual run of the `stock-trader` profile can call `mcp__trader_broker__get_risk_status` (Hermes names MCP tools `mcp__<server>__<tool>`: `tools/mcp_tool_schema.py` at v2026.9.24) but has no terminal, code or file tools. | Manual | Hermes end-to-end (README checklist) |
 | F4 | On the user's server: a cron job on a market holiday is skipped by the gate without waking the model; a job on a trading day posts its summary to the routed Discord and Telegram trading channel. | Manual | Daily schedule; profile_routes delivery |
 
 ## 10. Documentation

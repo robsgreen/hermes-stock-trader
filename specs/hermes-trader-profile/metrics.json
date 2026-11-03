@@ -5,16 +5,16 @@
   "harnessVersion": "0.1.0",
   "rubricVersion": "1.0",
   "specName": "hermes-trader-profile",
-  "generatedAt": "2026-11-03T17:33:09Z",
+  "generatedAt": "2026-11-03T19:10:10Z",
   "specStatus": "in-progress",
   "velocity": {
-    "wallClockMinutes": 261,
+    "wallClockMinutes": 357,
     "timeToPrMinutes": null,
     "sessionCount": 1,
     "phaseDurationsMinutes": {
       "planning": 253,
       "taskGeneration": 8,
-      "implementation": 0,
+      "implementation": 96,
       "testing": 0,
       "review": 0,
       "houseKeeping": 0,
@@ -22,19 +22,19 @@
     }
   },
   "lifecycle": {
-    "furthestPhase": "Task Generation",
+    "furthestPhase": "Implementation",
     "stalled": false
   },
   "throughput": {
     "subTasksTotal": 102,
-    "subTasksCompleted": 0,
-    "completionRatio": 0.0000
+    "subTasksCompleted": 102,
+    "completionRatio": 1.0000
   },
   "autonomy": {
     "hardGateInterventions": 0,
     "resumeCount": 0,
     "reviewFixCycles": 0,
-    "subAgentDispatches": 8,
+    "subAgentDispatches": 26,
     "postMortemActionItems": 0,
     "autonomousCompletion": false,
     "postPrRevisionCycles": 0
@@ -61,23 +61,23 @@
     }
   },
   "cost": {
-    "filesCreated": 0,
-    "filesModified": 0,
+    "filesCreated": 62,
+    "filesModified": 1,
     "filesDeleted": 0,
-    "linesAdded": 0,
-    "linesRemoved": 0
+    "linesAdded": 15760,
+    "linesRemoved": 1
   },
   "scopeDelta": {
     "plannedFiles": 39,
-    "actualFiles": 0,
-    "deltaFiles": -39
+    "actualFiles": 63,
+    "deltaFiles": 24
   },
   "pr": {
     "prIds": [],
     "prUrls": []
   },
   "parseHealth": {
-    "eventsValid": 12,
+    "eventsValid": 31,
     "eventsMalformed": 0,
     "eventsUnknownType": 0,
     "eventsReviewRounds": 0,

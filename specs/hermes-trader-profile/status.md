@@ -10,7 +10,7 @@ PR: (none)
 - [x] **Planning**
 - [x] **Task Generation**
 - [x] **Implementation**
-- [ ] **Testing**
+- [x] **Testing**
 - [ ] **Documentation**
 - [ ] **Review**
 - [ ] **Wrap-up**
@@ -55,3 +55,6 @@ PR: (none)
 - 2026-11-03 19:06 - Task 6.1 done (aa47912)
 - 2026-11-03 19:09 - Task 6.2 done (b563f36); Implementation complete, 412 tests green
 - 2026-11-03 19:09 - Phase → Testing
+- 2026-11-03 19:25 - Tester done (8d2c304): 519 passed, 1 strict xfail; found bugs 1-2 (unprotected positions), obs 3-7; dispatching fix coder
+- 2026-11-03 19:35 - Tester bugs fixed (6325800): 550 passed. Testing complete; P1/P2 (paper keys) and F3/F4/D1 (Hermes server) deferred to user
+- 2026-11-03 19:35 - Phase → Documentation
