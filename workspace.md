@@ -2,24 +2,24 @@
 
 Default branch: main   Remote: robsgreen/hermes-stock-trader   GitHub: yes
 
-Repository state at setup (2026-11-03): one commit (`4007dce Initial commit`) containing only `README.md` (`# hermes-stock-trader`). No source code, manifests, lockfiles, Makefile, or CI workflows exist yet. Every capability below is unsupported because nothing defines it; re-run workspace setup once a manifest (e.g. `pyproject.toml`, `package.json`) or `.github/workflows/` is added.
+Updated 2026-11-03 after spec `hermes-trader-profile` Task 1.1 (branch `sdlc/hermes-trader-profile`): Python 3.12 + uv project `trader-broker` (src layout, module `trader_broker`). Commands below come from `pyproject.toml` and `.github/workflows/ci.yml` on that branch.
 
 ## Capabilities
 
 | Capability | Status |
 |------------|--------|
-| Install | ❌ Not supported — no manifest or lockfile in repo |
-| Build | ❌ Not supported — no build config in repo |
-| Type-check | ❌ Not supported — no source or type-checker config |
-| Lint/Format | ❌ Not supported — no linter/formatter config |
-| Unit Tests | ❌ Not supported — no tests or test runner config |
-| Integration Tests | ❌ Not supported — no suites, docker-compose, or `.env.example` |
-| Local Dev | ❌ Not supported — no dev scripts |
-| Logging | ❌ Not established |
+| Install | ✅ `uv sync` |
+| Build | ✅ none separate (pure Python; `uv sync` builds the package) |
+| Type-check | ✅ `uv run mypy src` |
+| Lint/Format | ✅ `uv run ruff check .` / `uv run ruff format --check .` |
+| Unit Tests | ✅ `uv run pytest -m "not paper"` |
+| Integration Tests | ⚠️ `uv run pytest -m paper` (needs user's Alpaca paper keys) |
+| Local Dev | ⚠️ `uv run trader-broker serve` (after Task 4.3) |
+| Logging | ⚠️ planned: JSON logs to stderr + rotating file |
 | Metrics | ❌ Not established |
 
 ## Modules
-- `.` — hermes-stock-trader (single module; README only, no code yet)  (build: none, test: none)
+- `.` — trader-broker MCP server + Hermes `stock-trader` profile files  (build: `uv sync`, test: `uv run pytest -m "not paper"`)
 
 ## Module Dependencies
 

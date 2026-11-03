@@ -1,8 +1,8 @@
 # Status: hermes-trader-profile
 
 Last Updated: 2026-11-03 13:12
-Branch: (none)
-Worktree: (none)
+Branch: sdlc/hermes-trader-profile
+Worktree: /home/user/hermes-stock-trader-worktrees/hermes-trader-profile
 PR: (none)
 
 ## Checklist
@@ -35,3 +35,5 @@ PR: (none)
 - 2026-11-03 17:25 - Phase → Task Generation
 - 2026-11-03 17:33 - Task Generation: 18 tasks / 102 sub-tasks, 37 acceptance items
 - 2026-11-03 17:33 - Phase → Implementation
+- 2026-11-03 17:33 - Worktree created from origin/main
+- 2026-11-03 17:36 - Task 1.1 done (d5e4ccd); workspace.md updated with uv commands

@@ -5,15 +5,15 @@
   "harnessVersion": "0.1.0",
   "rubricVersion": "1.0",
   "specName": "hermes-trader-profile",
-  "generatedAt": "2026-11-03T17:25:49Z",
-  "specStatus": "planning",
+  "generatedAt": "2026-11-03T17:33:09Z",
+  "specStatus": "in-progress",
   "velocity": {
-    "wallClockMinutes": 253,
+    "wallClockMinutes": 261,
     "timeToPrMinutes": null,
     "sessionCount": 1,
     "phaseDurationsMinutes": {
       "planning": 253,
-      "taskGeneration": 0,
+      "taskGeneration": 8,
       "implementation": 0,
       "testing": 0,
       "review": 0,
@@ -22,19 +22,19 @@
     }
   },
   "lifecycle": {
-    "furthestPhase": "Planning",
+    "furthestPhase": "Task Generation",
     "stalled": false
   },
   "throughput": {
-    "subTasksTotal": 0,
+    "subTasksTotal": 102,
     "subTasksCompleted": 0,
-    "completionRatio": 0
+    "completionRatio": 0.0000
   },
   "autonomy": {
     "hardGateInterventions": 0,
     "resumeCount": 0,
     "reviewFixCycles": 0,
-    "subAgentDispatches": 7,
+    "subAgentDispatches": 8,
     "postMortemActionItems": 0,
     "autonomousCompletion": false,
     "postPrRevisionCycles": 0
@@ -77,13 +77,13 @@
     "prUrls": []
   },
   "parseHealth": {
-    "eventsValid": 10,
+    "eventsValid": 12,
     "eventsMalformed": 0,
     "eventsUnknownType": 0,
     "eventsReviewRounds": 0,
     "eventsJsonl": true,
     "statusMd": true,
-    "taskSpec": false,
+    "taskSpec": true,
     "reviewMd": false,
     "driftSummaryBlock": false,
     "masterPlanMd": true,

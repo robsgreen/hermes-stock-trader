@@ -3,7 +3,7 @@
 > **Source:** `.sdlc/specs/hermes-trader-profile/master-plan.md`
 > **Created:** 2026-11-03
 > **Last Updated:** 2026-11-03
-> **Progress:** 0 / 102 sub-tasks complete
+> **Progress:** 7 / 102 sub-tasks complete
 
 **Commands used in every Validation section** (the repo has no toolchain yet; Task 1.1 creates it, and the orchestrator re-runs workspace setup after Task 1.1 so `.sdlc/workspace.md` records them):
 
@@ -45,24 +45,24 @@ tests/unit/test_config.py         (create)
 
 **Sub-tasks:**
 
-- [ ] **1.1.1** — Write `pyproject.toml`: uv project with a `src/` layout, `requires-python = ">=3.12"`, runtime deps `fastmcp>=3.4,<4`, `alpaca-py`, `openai`, `pydantic>=2`, `httpx`; dev dependency group `pytest`, `ruff`, `mypy`, `pyyaml`, `types-PyYAML`; script entry `trader-broker = "trader_broker.cli:main"`; pytest config that registers the `paper` marker with `--strict-markers`; ruff config; mypy config (strict for `src/`, missing-import overrides only for third-party packages without type stubs). Run `uv sync` to create `uv.lock`.
-- [ ] **1.1.2** — Write `.python-version` (`3.12`) and `.gitignore` (`.venv`, `__pycache__`, `*.db`, `.env`, `state/`).
-- [ ] **1.1.3** — In `config.py`, define `Settings` (pydantic) loaded from environment variables. Fields and defaults: `TRADER_BROKER_MODE` (`paper`), `TRADER_BROKER_LIVE_ACK`, `TRADER_BROKER_STATE_DIR` (`~/.local/share/trader-broker`), `TRADER_RISK_PCT` (0.03), `TRADER_SYMBOL_CAP_PCT` (0.20), `TRADER_DAILY_LOSS_PCT` (0.04), `TRADER_KILL_DRAWDOWN_PCT` (0.20), `TRADER_MIN_PRICE` (5), `TRADER_MIN_ADV_USD` (20000000), `TRADER_ENTRY_TTL_MINUTES` (30), `TRADER_ENTRY_SLIPPAGE_PCT` (0.005), `REVIEWER_TIMEOUT_S` (60), `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`. Add the three configurable limits the plan names without env names, using the `TRADER_` prefix: no-entry-before-close minutes (30), minimum stop distance (0.005 of entry), maximum stop distance (0.25 of entry). Expose the state DB path `<state_dir>/<mode>/state.db` and the log path `<state_dir>/<mode>/logs/trader-broker.log`.
-- [ ] **1.1.4** — Add reviewer settings for `REVIEWER_1_*` and `REVIEWER_2_*` (`PROVIDER`, `BASE_URL`, `MODEL`, `API_KEY_ENV`). Defaults: reviewer 1 provider `openai`, base URL `https://api.openai.com/v1`, key env `OPENAI_API_KEY`; reviewer 2 provider `xai`, base URL `https://api.x.ai/v1`, key env `XAI_API_KEY`. `MODEL` has no default; a check used by `serve` fails when a model id or the named API key is missing.
-- [ ] **1.1.5** — Add the live guard: mode must be `paper` or `live`; `live` loads only when `TRADER_BROKER_LIVE_ACK` equals `I_ACCEPT_REAL_MONEY_RISK`; otherwise raise a configuration error whose message names both variables. Validate that all `*_PCT` values are in (0, 1).
-- [ ] **1.1.6** — Create `tests/conftest.py` with an autouse fixture that removes every `TRADER_*`, `REVIEWER_*`, `ALPACA_*`, `OPENAI_API_KEY`, `XAI_API_KEY` variable from the test environment. Write `tests/unit/test_config.py`: defaults load in paper mode; live without ACK fails; live with a wrong ACK fails; live with the exact ACK loads; unknown mode fails; state DB path contains the mode; env overrides parse; missing reviewer model fails the `serve` check.
-- [ ] **1.1.7** — Write `.github/workflows/ci.yml`: on push and pull request, install uv, run `uv sync`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest -m "not paper"`.
+- [x] **1.1.1** — Write `pyproject.toml`: uv project with a `src/` layout, `requires-python = ">=3.12"`, runtime deps `fastmcp>=3.4,<4`, `alpaca-py`, `openai`, `pydantic>=2`, `httpx`; dev dependency group `pytest`, `ruff`, `mypy`, `pyyaml`, `types-PyYAML`; script entry `trader-broker = "trader_broker.cli:main"`; pytest config that registers the `paper` marker with `--strict-markers`; ruff config; mypy config (strict for `src/`, missing-import overrides only for third-party packages without type stubs). Run `uv sync` to create `uv.lock`.
+- [x] **1.1.2** — Write `.python-version` (`3.12`) and `.gitignore` (`.venv`, `__pycache__`, `*.db`, `.env`, `state/`).
+- [x] **1.1.3** — In `config.py`, define `Settings` (pydantic) loaded from environment variables. Fields and defaults: `TRADER_BROKER_MODE` (`paper`), `TRADER_BROKER_LIVE_ACK`, `TRADER_BROKER_STATE_DIR` (`~/.local/share/trader-broker`), `TRADER_RISK_PCT` (0.03), `TRADER_SYMBOL_CAP_PCT` (0.20), `TRADER_DAILY_LOSS_PCT` (0.04), `TRADER_KILL_DRAWDOWN_PCT` (0.20), `TRADER_MIN_PRICE` (5), `TRADER_MIN_ADV_USD` (20000000), `TRADER_ENTRY_TTL_MINUTES` (30), `TRADER_ENTRY_SLIPPAGE_PCT` (0.005), `REVIEWER_TIMEOUT_S` (60), `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`. Add the three configurable limits the plan names without env names, using the `TRADER_` prefix: no-entry-before-close minutes (30), minimum stop distance (0.005 of entry), maximum stop distance (0.25 of entry). Expose the state DB path `<state_dir>/<mode>/state.db` and the log path `<state_dir>/<mode>/logs/trader-broker.log`.
+- [x] **1.1.4** — Add reviewer settings for `REVIEWER_1_*` and `REVIEWER_2_*` (`PROVIDER`, `BASE_URL`, `MODEL`, `API_KEY_ENV`). Defaults: reviewer 1 provider `openai`, base URL `https://api.openai.com/v1`, key env `OPENAI_API_KEY`; reviewer 2 provider `xai`, base URL `https://api.x.ai/v1`, key env `XAI_API_KEY`. `MODEL` has no default; a check used by `serve` fails when a model id or the named API key is missing.
+- [x] **1.1.5** — Add the live guard: mode must be `paper` or `live`; `live` loads only when `TRADER_BROKER_LIVE_ACK` equals `I_ACCEPT_REAL_MONEY_RISK`; otherwise raise a configuration error whose message names both variables. Validate that all `*_PCT` values are in (0, 1).
+- [x] **1.1.6** — Create `tests/conftest.py` with an autouse fixture that removes every `TRADER_*`, `REVIEWER_*`, `ALPACA_*`, `OPENAI_API_KEY`, `XAI_API_KEY` variable from the test environment. Write `tests/unit/test_config.py`: defaults load in paper mode; live without ACK fails; live with a wrong ACK fails; live with the exact ACK loads; unknown mode fails; state DB path contains the mode; env overrides parse; missing reviewer model fails the `serve` check.
+- [x] **1.1.7** — Write `.github/workflows/ci.yml`: on push and pull request, install uv, run `uv sync`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest -m "not paper"`.
 
 **Validation:**
 
-- [ ] **Build:** Gate commands exit 0.
-- [ ] **Tests:** `tests/unit/test_config.py` passes and covers defaults, all three live-guard cases, unknown mode, mode in state path, env overrides and the missing reviewer model check.
-- [ ] **Requirements:**
-    - [ ] "Default `TRADER_BROKER_MODE=paper`. Live mode requires `TRADER_BROKER_MODE=live` AND `TRADER_BROKER_LIVE_ACK=I_ACCEPT_REAL_MONEY_RISK`; otherwise the server refuses to start with a clear error."
-    - [ ] "State DB path includes the mode (`<state_dir>/<mode>/state.db`)."
-    - [ ] Reviewers configured by env with default providers/base URLs; "model ids required from env".
-    - [ ] SHOULD: "CI workflow runs `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest -m "not paper"`."
-- [ ] **Verify:** With `TRADER_BROKER_MODE=live` and no ACK set, a one-line `uv run python -c` command that loads `Settings` raises an error naming `TRADER_BROKER_LIVE_ACK`. Then re-run workspace setup so `.sdlc/workspace.md` records the uv commands.
+- [x] **Build:** Gate commands exit 0.
+- [x] **Tests:** `tests/unit/test_config.py` passes and covers defaults, all three live-guard cases, unknown mode, mode in state path, env overrides and the missing reviewer model check.
+- [x] **Requirements:**
+    - [x] "Default `TRADER_BROKER_MODE=paper`. Live mode requires `TRADER_BROKER_MODE=live` AND `TRADER_BROKER_LIVE_ACK=I_ACCEPT_REAL_MONEY_RISK`; otherwise the server refuses to start with a clear error."
+    - [x] "State DB path includes the mode (`<state_dir>/<mode>/state.db`)."
+    - [x] Reviewers configured by env with default providers/base URLs; "model ids required from env".
+    - [x] SHOULD: "CI workflow runs `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest -m "not paper"`."
+- [x] **Verify:** With `TRADER_BROKER_MODE=live` and no ACK set, a one-line `uv run python -c` command that loads `Settings` raises an error naming `TRADER_BROKER_LIVE_ACK`. Then re-run workspace setup so `.sdlc/workspace.md` records the uv commands.
 
 ---
 
