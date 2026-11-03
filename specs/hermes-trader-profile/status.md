@@ -25,3 +25,4 @@ PR: (none)
 - 2026-11-03 13:15 - Research in: trading-agents survey (TradingAgents pattern, tradermonty skills, AlpacaTradingAgent caps; live LLM results weak)
 - 2026-11-03 13:17 - User decision Q1: A — paper trading first, live only after passing a bar set in the plan
 - 2026-11-03 13:20 - User decision Q2: A — swing trading, ~3-5 scheduled runs/day, free IEX data
+- 2026-11-03 13:21 - User decision Q3: Hermes already running on DigitalOcean; providers OpenAI, xAI, Anthropic; reuse existing Discord + Telegram channels (open item: per-profile bot token vs multi-profile gateway)
