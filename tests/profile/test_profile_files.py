@@ -47,7 +47,9 @@ def _settings_env_names() -> set[str]:
     for field_name, field in Settings.model_fields.items():
         if field.annotation is ReviewerSettings:
             prefix = field_name.upper()
-            names |= {f"{prefix}_{key.upper()}" for key in ("provider", "base_url", "model")}
+            names |= {
+                f"{prefix}_{key.upper()}" for key in ("provider", "base_url", "model", "transport")
+            }
             names.add(f"{prefix}_API_KEY_ENV")
             names.add(getattr(defaults, field_name).api_key_env)
         elif field.alias:
@@ -73,6 +75,12 @@ def test_settings_env_names_cover_every_kind_of_setting() -> None:
     assert {"TRADER_BROKER_MODE", "TRADER_MAX_STOP_PCT", "ALPACA_SECRET_KEY"} <= names
     assert {"REVIEWER_1_MODEL", "REVIEWER_2_API_KEY_ENV", "REVIEWER_TIMEOUT_S"} <= names
     assert {"OPENAI_API_KEY", "XAI_API_KEY"} <= names
+    assert {
+        "REVIEWER_1_TRANSPORT",
+        "REVIEWER_2_TRANSPORT",
+        "TRADER_HERMES_PYTHON",
+        "TRADER_HERMES_HOME",
+    } <= names
 
 
 def test_both_yaml_files_parse() -> None:
@@ -118,19 +126,21 @@ def test_trader_broker_env_passes_through_every_setting(trader_broker: dict[str,
     assert all(value == f"${{{name}}}" for name, value in env.items())
 
 
-def test_toolsets_allow_only_trader_broker_web_memory_and_skills(config: dict[str, Any]) -> None:
+def test_toolsets_allow_only_trader_broker_web_x_search_memory_and_skills(
+    config: dict[str, Any],
+) -> None:
     platforms = config["platform_toolsets"]
 
     assert {"cli", "cron", "discord", "telegram"} <= set(platforms)
     for toolsets in platforms.values():
-        assert set(toolsets) == {"trader_broker", "web", "memory", "skills"}
+        assert set(toolsets) == {"trader_broker", "web", "x_search", "memory", "skills"}
 
 
 def test_terminal_code_file_and_browser_toolsets_are_disabled(config: dict[str, Any]) -> None:
     disabled = set(config["agent"]["disabled_toolsets"])
 
     assert {"terminal", "code_execution", "file", "browser"} <= disabled
-    assert not disabled & {"trader_broker", "web", "memory", "skills"}
+    assert not disabled & {"trader_broker", "web", "x_search", "memory", "skills"}
 
 
 def test_skill_changes_need_approval_and_memory_is_on(config: dict[str, Any]) -> None:

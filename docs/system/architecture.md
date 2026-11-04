@@ -41,7 +41,7 @@ Hermes launches `trader-broker serve` as a stdio MCP server when the profile con
 | `server.py` | `build_server`: the FastMCP server and its 16 tools. Each tool holds one in-process lock, so calls run one at a time. Every tool not annotated read-only (`get_risk_status`, `get_journal`, `propose_buy`, the exit tools and `journal_note`) also holds the account lock, so a second `serve` process or a CLI `status` on the same account waits its turn; a tool that cannot get it within `TRADER_ACCOUNT_LOCK_WAIT_S` (default 60 s) returns `{"status": "error", "reason": "busy"}`, and the agent retries later. The wait is kept short so that it plus the longest tool run (a buy's reviews, about 120 s) stays under Hermes's 300 s call timeout: the agent then always gets `busy`, never a timeout while its call is still queued and may yet place an order. Logs every call as JSON. Turns `BrokerError`, `StateUnavailableError` and unexpected exceptions into `{"status": "error", "reason": ...}` results instead of tracebacks. |
 | `service.py` | `TraderService`: the logic behind every tool. It covers the equity refresh and halt latches, housekeeping, the buy path, the exit tools, journal access, and client-order-id idempotency. |
 | `risk.py` | Pure functions with no I/O: `Caps`, `Portfolio`, `entry_price`, `size_position`, `check_entry`, `check_market_rules` and `check_halts`. Every check reports all the rules a buy breaks, not only the first. |
-| `review.py` | `build_packet`, the `Reviewer` protocol, `OpenAICompatReviewer`, `run_reviewers` (runs the reviewers in parallel threads) and `decide` (the decision rule). |
+| `review.py` | `build_packet`, the `Reviewer` protocol, `OpenAICompatReviewer`, `HermesReviewer`, transport factory `build_reviewer`, `run_reviewers` (parallel threads), and `decide` (the decision rule). `hermes_inference.py` is the standalone, tool-free native inference helper. |
 | `state.py` | `StateStore` over one SQLite file, plus `init_state`. Fails closed: opening never creates a file. |
 | `account_lock.py` | `AccountLock`: an exclusive `flock` on `TRADER_BROKER_STATE_DIR/<mode>/trader-broker.lock` (`Settings.account_lock_path`), created on first use. It waits up to the given timeout, then raises `AccountBusyError`: `serve` passes `Settings.account_lock_wait_s` (`TRADER_ACCOUNT_LOCK_WAIT_S`, default 60 s), and CLI `status` keeps the 300 s default. The operating system releases it if the process dies. |
 | `market.py` | Shared market conventions: `MARKET_TZ` (New York), `BENCHMARK_SYMBOL` (SPY, for settlement, the go-live report and the review's regime), `market_date`, `simple_return` and `close_on_or_before`. |
@@ -244,6 +244,42 @@ Each reviewer gets the same canonical JSON packet. The packet's SHA-256 is store
 
 Model ids have no default. `REVIEWER_n_MODEL` must be set, or `serve` refuses to start. `REVIEWER_n_PROVIDER`, `REVIEWER_n_BASE_URL` and `REVIEWER_n_API_KEY_ENV` override the other defaults.
 
+**Optional Hermes transport.** Each slot's `REVIEWER_n_TRANSPORT` defaults to `api`;
+`hermes` selects `HermesReviewer` without changing the parallel review or decision
+rule. Its provider must be explicitly `openai-codex` (Codex OAuth) or `xai` (API-key
+authentication). The operator supplies absolute `TRADER_HERMES_PYTHON` (an executable
+with native Hermes imports) and `TRADER_HERMES_HOME` (an existing auth-home directory,
+normally the default `/home/hermes/.hermes`). Startup checks paths and model ids but
+does not resolve auth or call inference. Hermes slots need no API key in the broker
+environment; API slots retain their existing requirements. `BASE_URL` and
+`API_KEY_ENV` do not override a Hermes route.
+
+For each attempt the broker launches the packaged `hermes_inference.py` **as a file**
+with the configured interpreter, an argument list (no shell), cwd set to the auth
+home, and an allowlisted environment (`HOME`, `PATH`, `LANG`, plus explicit
+`HERMES_HOME`). Stock-trader provider credentials, profile identity, Python import
+overrides and proxy overrides are not inherited. The helper loads only the selected
+home's `.env` before using native `agent.auxiliary_client.resolve_provider_client`
+and its `.chat.completions.create()` facade. Hermes owns OAuth discovery/refresh and
+Codex Responses adaptation; no OAuth tokens are copied to the profile. External
+secret-manager commands are not bootstrapped. The native resolver receives the exact
+provider/model, not `auto`; missing clients, changed resolved models or conflicting
+effective-provider metadata fail closed. No agent, delegation, tool loop or fallback
+chain is invoked. Only the fixed system prompt and canonical packet are sent.
+
+JSON stdin carries the packet, SHA-256 and expected provider/model. JSON stdout
+binds the verdict to those three fields; the broker verifies all bindings and the
+`ReviewVerdict` schema. Extra envelope fields, duplicate keys, noisy or oversized
+stdout and malformed verdicts are refused. Native diagnostics are suppressed in the
+helper, and subprocess stderr/exception text is never included in outcomes or logs.
+Every failure gets at most one retry. Each subprocess attempt (including startup) is
+bounded by `REVIEWER_TIMEOUT_S`, with a monotonic total ceiling of twice that timeout;
+the subprocess is killed and reaped on timeout. Failures become error outcomes and
+block buys, never exits. The broker retains packet construction, validation, risk
+gates, sizing, journaling and sole execution ownership. The proposer cannot submit
+review approvals. Native auth/inference integration remains an operator-authorized
+deployment check; tests stub Hermes and require no installed Hermes or credentials.
+
 Each outcome carries a `verdict_name`: `approve`, `modify` or `reject` (`models.Verdict`), or `error`.
 
 **Decision rule** (`review.decide`). The buy is blocked when any of these holds:
@@ -336,6 +372,8 @@ The database lives at `TRADER_BROKER_STATE_DIR/<mode>/state.db`. `TRADER_BROKER_
 
 ## The Hermes profile
 
+The CLI, cron, Discord and Telegram allowlists include Hermes's `x_search` for cited public X research, alongside broker tools, web research, memory and skills. Screening and trade analysis treat social posts as untrusted leads and corroborate material claims with primary sources; X availability is optional and failures fall back to broker news and web research. `xurl`, general terminal access and X account-write operations are not enabled.
+
 `profile/` holds the `stock-trader` profile. `scripts/install-profile.sh` copies it to `~/.hermes/profiles/stock-trader/`. The Hermes keys and names below were checked against Hermes Agent v2026.9.24 (`github.com/NousResearch/hermes-agent`, tag `v2026.9.24`). Doc paths are relative to that repository.
 
 ### Model and persona
@@ -385,7 +423,7 @@ Identifiers are from <https://github.com/NousResearch/hermes-agent/blob/v2026.9.
 
 These are set in two places:
 
-- `platform_toolsets` gives `cli`, `cron`, `discord` and `telegram` the same allowlist: `[trader_broker, web, memory, skills]`. Naming an MCP server in such a list also limits MCP tools to that server.
+- `platform_toolsets` gives `cli`, `cron`, `discord` and `telegram` the same allowlist: `[trader_broker, web, x_search, memory, skills]`. Naming an MCP server in such a list also limits MCP tools to that server.
 - `agent.disabled_toolsets: [terminal, code_execution, file, browser]` removes those toolsets on every platform after the allowlists are applied, so a platform list that still names one cannot bring it back. It does not hold against the operator: explicitly enabling one of these toolsets for a platform with `hermes tools` removes it from `disabled_toolsets`. Re-running the installer restores `config.yaml`, keeping the edited file as a backup. Sources: `website/docs/user-guide/configuration.md`, "Global Toolset Disable"; `hermes_cli/tools_config.py`.
 
 Hermes has no toolset that holds only the skill-reading tools, and `skill_manage` cannot be disabled on its own. So skill writes are handled through `skills.write_approval: true` instead: every `skill_manage` change is staged for a person to approve (`/skills pending`) rather than applied.

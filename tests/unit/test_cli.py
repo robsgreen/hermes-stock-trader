@@ -55,6 +55,36 @@ def test_serve_in_live_mode_without_the_ack_exits_with_a_message(
     assert captured.out == ""
 
 
+def test_serve_builds_two_hermes_reviewers_without_api_clients(
+    tmp_path: Path, fake_broker: FakeBroker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import sys
+
+    from trader_broker.review import HermesReviewer
+
+    for name in ("OPENAI_API_KEY", "XAI_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in {
+        "REVIEWER_1_TRANSPORT": "hermes",
+        "REVIEWER_1_PROVIDER": "openai-codex",
+        "REVIEWER_1_MODEL": "gpt-test",
+        "REVIEWER_2_TRANSPORT": "hermes",
+        "REVIEWER_2_MODEL": "grok-test",
+        "TRADER_HERMES_PYTHON": sys.executable,
+        "TRADER_HERMES_HOME": str(tmp_path),
+    }.items():
+        monkeypatch.setenv(name, value)
+
+    def build(service: TraderService, **kwargs: object) -> object:
+        assert len(service._reviewers) == 2
+        assert all(isinstance(reviewer, HermesReviewer) for reviewer in service._reviewers)
+        return type("Server", (), {"run": lambda *a, **kw: None})()
+
+    monkeypatch.setattr(cli, "build_server", build)
+    monkeypatch.setattr(cli, "configure_logging", lambda _: None)
+    assert main(["serve"], connect=lambda _: fake_broker) == 0
+
+
 def test_serve_waits_for_the_account_lock_well_inside_the_mcp_call_timeout(
     state_dir: Path, fake_broker: FakeBroker, monkeypatch: pytest.MonkeyPatch
 ) -> None:
