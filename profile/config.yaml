@@ -1,0 +1,134 @@
+# Hermes config for the `stock-trader` profile (~/.hermes/profiles/stock-trader/config.yaml).
+#
+# scripts/install-profile.sh copies this file into the profile and fills in the two
+# placeholders: <INSTALL_DIR> (this repository's checkout on the server) and
+# <ANTHROPIC_MODEL> (the Claude model id chosen at install). Hermes deep-merges it over
+# its built-in defaults, so only the settings this profile depends on appear here.
+#
+# Keys were checked against Hermes Agent v2026.9.24 (github.com/NousResearch/hermes-agent,
+# tag v2026.9.24). Doc paths below are relative to that repository; the same pages are
+# published under https://hermes-agent.nousresearch.com/docs/.
+
+# Cron schedules, log timestamps and the time injected into the prompt use US Eastern.
+# Source: website/docs/user-guide/configuration.md ("Timezone").
+timezone: America/New_York
+
+# The proposer is Claude through Anthropic's own API (ANTHROPIC_API_KEY in this profile's .env).
+# Source: website/docs/user-guide/configuring-models.md (model.provider / model.default).
+#
+# There is deliberately no `fallback_providers` list. The trade reviewers run on OpenAI and
+# xAI; a fallback to either would let the proposer and a reviewer share a vendor, which
+# defeats cross-model review. If Anthropic is down, the run fails and is reported, and the
+# next scheduled run tries again. Sells and stops already resting at the broker are unaffected.
+# Source: website/docs/user-guide/features/fallback-providers.md.
+model:
+  provider: anthropic
+  default: <ANTHROPIC_MODEL>
+
+# trader-broker is this profile's only path to the broker. It sizes every order and enforces
+# the risk caps in code. Source: website/docs/reference/mcp-config-reference.md and
+# website/docs/user-guide/features/mcp.md.
+mcp_servers:
+  trader_broker:
+    # stdio server: Hermes launches the command and speaks MCP over its stdin/stdout.
+    command: uv
+    args: [run, --directory, <INSTALL_DIR>, trader-broker, serve]
+    # Hermes passes a stdio server only a safe baseline (PATH, HOME, ...) plus this mapping.
+    # `${VAR}` resolves from this profile's .env when the server connects. A variable that
+    # is unset OR EMPTY there is passed as the literal text `${VAR}`; trader-broker treats
+    # that as unset, so the setting keeps its default and a missing reviewer model or key
+    # stops the server at start. profile/.env.example lists every name with its default.
+    # If you point REVIEWER_n_API_KEY_ENV at another variable, add that variable here too.
+    env:
+      ALPACA_API_KEY: "${ALPACA_API_KEY}"
+      ALPACA_SECRET_KEY: "${ALPACA_SECRET_KEY}"
+      TRADER_BROKER_MODE: "${TRADER_BROKER_MODE}"
+      TRADER_BROKER_LIVE_ACK: "${TRADER_BROKER_LIVE_ACK}"
+      TRADER_BROKER_STATE_DIR: "${TRADER_BROKER_STATE_DIR}"
+      TRADER_ACCOUNT_LOCK_WAIT_S: "${TRADER_ACCOUNT_LOCK_WAIT_S}"
+      TRADER_RISK_PCT: "${TRADER_RISK_PCT}"
+      TRADER_SYMBOL_CAP_PCT: "${TRADER_SYMBOL_CAP_PCT}"
+      TRADER_DAILY_LOSS_PCT: "${TRADER_DAILY_LOSS_PCT}"
+      TRADER_KILL_DRAWDOWN_PCT: "${TRADER_KILL_DRAWDOWN_PCT}"
+      TRADER_MIN_PRICE: "${TRADER_MIN_PRICE}"
+      TRADER_MIN_ADV_USD: "${TRADER_MIN_ADV_USD}"
+      TRADER_ENTRY_TTL_MINUTES: "${TRADER_ENTRY_TTL_MINUTES}"
+      TRADER_ENTRY_SLIPPAGE_PCT: "${TRADER_ENTRY_SLIPPAGE_PCT}"
+      TRADER_NO_ENTRY_BEFORE_CLOSE_MINUTES: "${TRADER_NO_ENTRY_BEFORE_CLOSE_MINUTES}"
+      TRADER_MIN_STOP_PCT: "${TRADER_MIN_STOP_PCT}"
+      TRADER_MAX_STOP_PCT: "${TRADER_MAX_STOP_PCT}"
+      REVIEWER_TIMEOUT_S: "${REVIEWER_TIMEOUT_S}"
+      REVIEWER_1_PROVIDER: "${REVIEWER_1_PROVIDER}"
+      REVIEWER_1_BASE_URL: "${REVIEWER_1_BASE_URL}"
+      REVIEWER_1_MODEL: "${REVIEWER_1_MODEL}"
+      REVIEWER_1_API_KEY_ENV: "${REVIEWER_1_API_KEY_ENV}"
+      REVIEWER_2_PROVIDER: "${REVIEWER_2_PROVIDER}"
+      REVIEWER_2_BASE_URL: "${REVIEWER_2_BASE_URL}"
+      REVIEWER_2_MODEL: "${REVIEWER_2_MODEL}"
+      REVIEWER_2_API_KEY_ENV: "${REVIEWER_2_API_KEY_ENV}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      XAI_API_KEY: "${XAI_API_KEY}"
+    # trust: full means Hermes never asks for approval before calling these tools. That is
+    # required: cron runs are unattended and Hermes approval prompts fail closed there, so an
+    # `untrusted` server would block every buy, sell and stop change. It is safe because the
+    # server is ours, every tool carries MCP annotations, and the limits are enforced inside
+    # the server, where the agent cannot change them.
+    trust: full
+    # Seconds per tool call. propose_buy waits on two reviewers, each allowed 60 s plus one
+    # retry (about 120 s worst case), so 300 s leaves headroom. A write tool first waits up
+    # to TRADER_ACCOUNT_LOCK_WAIT_S (60 s) for another trader-broker process; that wait plus
+    # the longest tool run must stay under this timeout, so the agent gets `busy` instead
+    # of a timeout while its call is still queued. Raise both together, never one alone.
+    timeout: 300
+
+# Toolsets. Identifiers come from website/docs/reference/toolsets-reference.md:
+#   trader_broker - the MCP server above; Hermes names its runtime toolset `mcp-trader_broker`
+#                   and accepts the bare server name in platform lists ("Dynamic Toolsets").
+#   web           - web_search and web_extract (news and earnings dates).
+#   memory        - the persistent memory tool (lessons from the journal).
+#   skills        - skills_list, skill_view and skill_manage (see `skills.write_approval`).
+#   terminal, code_execution, file, browser - switched off below.
+#
+# Each platform's list is an allowlist: only the named toolsets load, and naming an MCP
+# server limits MCP tools to that server. `cron` is what the scheduled trading jobs use;
+# `discord` and `telegram` serve chats routed to this profile; `cli` serves
+# `hermes -p stock-trader chat`. Source: hermes_cli/tools_config.py `_get_platform_tools`
+# and website/docs/user-guide/features/cron.md ("Toolsets available to cron jobs").
+platform_toolsets:
+  cli: [trader_broker, web, memory, skills]
+  cron: [trader_broker, web, memory, skills]
+  discord: [trader_broker, web, memory, skills]
+  telegram: [trader_broker, web, memory, skills]
+
+agent:
+  # Removed on every platform, after the lists above, so a platform list that still names
+  # one of them cannot bring it back. Without them the agent cannot edit its own limits,
+  # read its API keys, or reach the broker except through trader-broker. An operator who
+  # explicitly enables one of these toolsets with `hermes tools` removes it from this list;
+  # re-running scripts/install-profile.sh restores this file.
+  # Sources: website/docs/user-guide/configuration.md ("Global Toolset Disable") and
+  # hermes_cli/tools_config.py (`newly_enabled` clears entries from disabled_toolsets).
+  disabled_toolsets: [terminal, code_execution, file, browser]
+
+skills:
+  # Hermes has no toolset that holds only the skill-reading tools: `skills` bundles
+  # skill_manage with skills_list and skill_view. With write approval on, every skill_manage
+  # change is staged for a person to approve (`/skills pending`) instead of being applied,
+  # so the agent can read its trading skills but never rewrite them on its own.
+  write_approval: true
+
+# Persistent memory carries lessons between runs. Source: website/docs/user-guide/features/memory.md.
+memory:
+  memory_enabled: true
+
+# Anything that would need a human approval during an unattended run is refused, not left
+# waiting. With terminal and code execution off, this is a backstop.
+approvals:
+  cron_mode: deny
+  unattended_mode: deny
+
+# General plugins load only when named in `plugins.enabled`; an empty list loads none, so no
+# third-party hook or tool runs in this profile.
+# Source: website/docs/user-guide/features/plugins.md ("Plugins are opt-in").
+plugins:
+  enabled: []

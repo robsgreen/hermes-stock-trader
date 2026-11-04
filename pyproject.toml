@@ -1,0 +1,60 @@
+[project]
+name = "trader-broker"
+version = "0.1.0"
+description = "MCP server that is a Hermes trading agent's only path to the broker, with risk limits enforced in code."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Exact pin: brokers/alpaca.py sets the SDK clients' private `_retry` and `_session`
+    # attributes. Re-check them in the new version before changing this pin.
+    "alpaca-py==0.44.0",
+    "fastmcp>=3.4,<4",
+    "httpx",
+    "openai",
+    "pydantic>=2",
+]
+
+[project.scripts]
+trader-broker = "trader_broker.cli:main"
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "pytest",
+    "pyyaml",
+    "ruff",
+    "types-PyYAML",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers"]
+markers = [
+    "paper: talks to the Alpaca paper API; needs ALPACA_API_KEY and ALPACA_SECRET_KEY",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific rules
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]

@@ -1,0 +1,112 @@
+# Scheduled jobs for the `stock-trader` profile. scripts/install-profile.sh reads this list,
+# creates each job that is missing with `hermes -p stock-trader cron create`, and brings an
+# existing job's schedule, skills, prompt, script and targets back in line with
+# `hermes -p stock-trader cron edit`.
+#
+# Field meanings, checked against Hermes Agent v2026.9.24 (website/docs/user-guide/features/cron.md,
+# cron/job_definition.py, cron/scheduler_script.py, cron/jobs.py):
+#   timezone       The zone the schedules are written in. Hermes cron has no per-job time
+#                  zone: it reads every schedule in the profile's `timezone` setting, which
+#                  profile/config.yaml sets to the same zone (a test keeps the two equal).
+#   schedule       Standard 5-field cron expression: minute hour day-of-month month day-of-week.
+#   skills         Profile skills loaded, in order, before the prompt runs.
+#   prompt         The task. Each cron run is a fresh session, so the prompt is self-contained.
+#   script         Pre-run script, resolved inside the profile's own scripts/ directory
+#                  (~/.hermes/profiles/stock-trader/scripts/); Hermes refuses paths outside it.
+#                  It is this repository's scripts/market-open-gate.sh. When its last stdout
+#                  line is {"wakeAgent": false} (a weekend or market holiday) the run is skipped
+#                  without calling the model.
+#   deliver        Where the final report is posted, from the profile's .env; Hermes takes
+#                  them as one comma-separated --deliver value.
+
+timezone: America/New_York
+
+jobs:
+  - name: premarket-plan
+    schedule: "0 9 * * 1-5"
+    skills: [market-regime, candidate-screen]
+    script: market-open-gate.sh
+    deliver: ["${TRADER_DISCORD_TARGET}", "${TRADER_TELEGRAM_TARGET}"]
+    prompt: |
+      Pre-market plan for today's US session; the market opens at 09:30 ET.
+      1. Run the market-regime skill and set today's posture.
+      2. Unless the posture is stand aside, run the candidate-screen skill for a shortlist
+         of at most 5 setups.
+      Do not call mcp__trader_broker__propose_buy or any other order tool in this run:
+      the market is closed and entries happen in the 09:45 run.
+      Post a concise plan: posture with its numbers, the shortlist (symbol, setup,
+      catalyst, trigger and stop levels), open positions, and today's event risk.
+
+  - name: entries
+    schedule: "45 9 * * 1-5"
+    skills: [market-regime, candidate-screen, trade-analysis]
+    script: market-open-gate.sh
+    deliver: ["${TRADER_DISCORD_TARGET}", "${TRADER_TELEGRAM_TARGET}"]
+    prompt: |
+      Morning entries for today's US session.
+      1. Run the market-regime skill. If the posture is stand aside, report why and stop.
+      2. Run the candidate-screen skill for today's shortlist.
+      3. For each shortlisted stock, best first, run the trade-analysis skill: state the
+         next earnings date in the thesis, write the invalidation, set stop and target, and
+         call mcp__trader_broker__propose_buy without a share count. Stop when the posture's
+         number of new entries is reached.
+      Post a concise report: posture, each proposal placed or blocked with its reasons,
+      and the shortlist names you passed on and why.
+
+  - name: midday
+    schedule: "30 12 * * 1-5"
+    skills: [position-review, candidate-screen, trade-analysis]
+    script: market-open-gate.sh
+    deliver: ["${TRADER_DISCORD_TARGET}", "${TRADER_TELEGRAM_TARGET}"]
+    prompt: |
+      Midday review of today's US session.
+      1. Run the position-review skill: start with mcp__trader_broker__get_risk_status,
+         check every open trade against its invalidation, raise stops on winners and exit
+         broken trades. Close every position that reports earnings after today's close or
+         before tomorrow's open, unless the trade was bought for earnings: on an early-close
+         day the close review runs after the market has closed and cannot sell.
+      2. If no halt is active and the market tape still supports it, run the
+         candidate-screen skill and then the trade-analysis skill for at most 1 new entry,
+         with the next earnings date in the thesis and no share count.
+      Post a concise report: exits, stop changes, new proposals placed or blocked, and
+      open risk.
+
+  - name: close-review
+    schedule: "45 15 * * 1-5"
+    skills: [position-review, journal-review]
+    script: market-open-gate.sh
+    deliver: ["${TRADER_DISCORD_TARGET}", "${TRADER_TELEGRAM_TARGET}"]
+    prompt: |
+      Close review for today's US session; no new buys this late.
+      1. Call mcp__trader_broker__get_clock first. If is_open is false, the market has
+         already closed (an early-close day): do not call mcp__trader_broker__sell or
+         mcp__trader_broker__close_position in this run, because a market order would wait
+         for the next open. List each exit you would make under "Exit at next open" in
+         the report, so the operator can act on it before the next session.
+      2. Call mcp__trader_broker__get_risk_status. It cancels entry orders older than their
+         time limit. If open_entry_orders still lists an unfilled entry, cancel it with
+         mcp__trader_broker__cancel_entry_order.
+      3. Run the position-review skill and make today's exits and stop changes, including
+         closing positions that report earnings before tomorrow's session unless the trade
+         was bought for earnings.
+      4. Run the journal-review skill: settle every entry from
+         mcp__trader_broker__get_journal with status "pending_lessons" by recording its
+         lesson with mcp__trader_broker__journal_note, and keep durable lessons in memory.
+      Post the daily report: equity and day P&L, halts, orders placed, blocked and closed
+      today, open positions with stop and next earnings date, and new lessons.
+
+  - name: weekly-report
+    schedule: "30 16 * * 5"
+    skills: [journal-review]
+    deliver: ["${TRADER_DISCORD_TARGET}", "${TRADER_TELEGRAM_TARGET}"]
+    prompt: |
+      Weekly go-live scorecard, after Friday's close.
+      1. Run the journal-review skill: record a lesson for any entry still listed by
+         mcp__trader_broker__get_journal with status "pending_lessons".
+      2. Build the weekly scorecard from the journal-review skill and compare it with SPY:
+         this week's and all closed trades, win rate, average return and alpha against SPY,
+         account equity and drawdown, and SPY's return this week.
+      3. List each go-live criterion (8 weeks of paper trading, return above SPY, maximum
+         drawdown under 25%, no integrity violations) with what you can see, and note that
+         the operator's `trader-broker report` gives the authoritative pass or fail.
+      Post the scorecard concisely, then the three lessons that matter most this week.
