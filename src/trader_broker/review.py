@@ -9,17 +9,21 @@ or shrink the size; nothing here loosens an order.
 import hashlib
 import json
 import math
+import os
+import subprocess
+import time
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Protocol
+from pathlib import Path
+from typing import Any, Protocol
 
 from openai import OpenAI, OpenAIError
 from pydantic import AwareDatetime, BaseModel, ConfigDict, ValidationError
 
 from trader_broker import indicators
-from trader_broker.config import ConfigError, ReviewerSettings
+from trader_broker.config import ConfigError, ReviewerSettings, Settings
 from trader_broker.models import (
     Bar,
     NewsItem,
@@ -210,6 +214,103 @@ size_multiplier above 0 and at most 1. Every key in "modifications" is optional;
 "modifications" when you ask for none. A target_price is advisory and is not applied. \
 You cannot widen the stop or enlarge the size.\
 """
+
+
+def build_reviewer(reviewer: ReviewerSettings, settings: Settings) -> Reviewer:
+    """Choose the operator-configured transport without resolving credentials here."""
+    if reviewer.transport == "hermes":
+        settings.require_reviewers()
+        assert settings.hermes_python is not None and settings.hermes_home is not None
+        assert reviewer.model is not None
+        return HermesReviewer(
+            reviewer.provider,
+            reviewer.model,
+            settings.hermes_python,
+            settings.hermes_home,
+            settings.reviewer_timeout_s,
+        )
+    return OpenAICompatReviewer.from_settings(reviewer, settings.reviewer_timeout_s)
+
+
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject ambiguous JSON envelopes and nested verdicts with duplicate keys."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate key")
+        result[key] = value
+    return result
+
+
+class HermesReviewer:
+    """Tool-free inference in an operator-selected Hermes interpreter, not an agent loop."""
+
+    def __init__(
+        self, provider: str, model: str, python: Path, home: Path, timeout_s: float
+    ) -> None:
+        self._provider = provider
+        self._model = model
+        self._python = python
+        self._home = home
+        self._timeout_s = timeout_s
+
+    @property
+    def name(self) -> str:
+        return self._provider
+
+    def review(self, packet: ReviewPacket) -> ReviewOutcome:
+        request = {
+            "provider": self._provider,
+            "model": self._model,
+            "packet": packet.canonical_json(),
+            "packet_sha256": packet.sha256,
+            "system_prompt": SYSTEM_PROMPT,
+            "timeout_s": self._timeout_s,
+        }
+        # Deliberate allowlist: no profile provider keys, Python import overrides,
+        # proxy overrides or HERMES_PROFILE can cross this boundary.
+        env = {key: os.environ[key] for key in ("HOME", "PATH", "LANG") if key in os.environ}
+        env["HERMES_HOME"] = str(self._home)
+        deadline = time.monotonic() + 2 * self._timeout_s
+        error = "Hermes inference failed"
+        for _attempt in range(2):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                result = subprocess.run(
+                    [str(self._python), str(Path(__file__).with_name("hermes_inference.py"))],
+                    input=json.dumps(request),
+                    text=True,
+                    capture_output=True,
+                    cwd=str(self._home),
+                    env=env,
+                    timeout=min(self._timeout_s, remaining),
+                    check=False,
+                )
+                if result.returncode != 0:
+                    error = "Hermes process failed"
+                    continue
+                if len(result.stdout) > 65_536:
+                    raise ValueError("oversized response")
+                reply = json.loads(result.stdout, object_pairs_hook=_unique_object)
+                if not isinstance(reply, dict) or set(reply) != {
+                    "packet_sha256",
+                    "provider",
+                    "model",
+                    "verdict",
+                }:
+                    raise ValueError("invalid envelope")
+                if any(
+                    reply[key] != request[key] for key in ("packet_sha256", "provider", "model")
+                ):
+                    raise ValueError("mismatched binding")
+                verdict = ReviewVerdict.model_validate(reply["verdict"])
+                return ReviewOutcome(reviewer=self.name, verdict=verdict)
+            except Exception:
+                # Never echo subprocess output, exceptions or Hermes credentials.
+                error = "Hermes inference failed"
+        return ReviewOutcome(reviewer=self.name, error=f"{error} (after one retry)")
 
 
 class OpenAICompatReviewer:

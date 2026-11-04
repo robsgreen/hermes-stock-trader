@@ -51,11 +51,12 @@ class ConfigError(Exception):
 
 
 class ReviewerSettings(BaseModel):
-    """One trade reviewer, reached through an OpenAI-compatible chat completions API."""
+    """One reviewer, reached through a direct API or tool-free native Hermes inference."""
 
     model_config = ConfigDict(frozen=True)
 
     provider: str
+    transport: Literal["api", "hermes"] = "api"
     base_url: str
     model: str | None = None
     """Model id; there is no default, so the user picks it at install."""
@@ -113,6 +114,8 @@ class Settings(BaseModel):
     """Largest allowed stop distance, as a share of the entry price."""
 
     reviewer_timeout_s: float = Field(60, gt=0, alias="REVIEWER_TIMEOUT_S")
+    hermes_python: Path | None = Field(None, alias="TRADER_HERMES_PYTHON")
+    hermes_home: Path | None = Field(None, alias="TRADER_HERMES_HOME")
     reviewer_1: ReviewerSettings = ReviewerSettings(**_REVIEWER_DEFAULTS["reviewer_1"])
     reviewer_2: ReviewerSettings = ReviewerSettings(**_REVIEWER_DEFAULTS["reviewer_2"])
 
@@ -139,7 +142,7 @@ class Settings(BaseModel):
         values: dict[str, Any] = {name: env[name] for name in aliases if name in env}
         for field_name, prefix in _REVIEWER_ENV_PREFIXES.items():
             reviewer = dict(_REVIEWER_DEFAULTS[field_name])
-            for key in ("provider", "base_url", "model", "api_key_env"):
+            for key in ("provider", "base_url", "model", "api_key_env", "transport"):
                 if f"{prefix}_{key.upper()}" in env:
                     reviewer[key] = env[f"{prefix}_{key.upper()}"]
             values[field_name] = {**reviewer, "api_key": env.get(reviewer["api_key_env"])}
@@ -179,7 +182,7 @@ class Settings(BaseModel):
         return self.state_dir / self.mode / "logs" / "trader-broker.log"
 
     def require_reviewers(self) -> None:
-        """Raise ConfigError unless both reviewers have a model id and an API key.
+        """Require model ids plus API credentials or explicit Hermes runtime paths.
 
         `serve` calls this before starting, so a missing reviewer stops the server
         at start rather than blocking every buy later.
@@ -189,7 +192,21 @@ class Settings(BaseModel):
             reviewer: ReviewerSettings = getattr(self, field_name)
             if reviewer.model is None:
                 problems.append(f"{prefix}_MODEL is not set")
-            if reviewer.api_key is None:
+            if reviewer.transport == "hermes":
+                if reviewer.provider not in {"openai-codex", "xai"}:
+                    problems.append(f"{prefix}_PROVIDER must be openai-codex or xai for Hermes")
+                python = self.hermes_python
+                if (
+                    python is None
+                    or not python.is_absolute()
+                    or not python.is_file()
+                    or not os.access(python, os.X_OK)
+                ):
+                    problems.append("TRADER_HERMES_PYTHON must be an absolute executable file")
+                home = self.hermes_home
+                if home is None or not home.is_absolute() or not home.is_dir():
+                    problems.append("TRADER_HERMES_HOME must be an absolute existing directory")
+            elif reviewer.api_key is None:
                 problems.append(
                     f"{reviewer.api_key_env} (named by {prefix}_API_KEY_ENV) is not set"
                 )

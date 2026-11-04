@@ -20,7 +20,7 @@ How it works in detail: [docs/system/architecture.md](docs/system/architecture.m
 - A Linux server where Hermes Agent (v2026.9.24 or later) already runs, with its Discord and/or Telegram bots on the default profile.
 - `git` and [`uv`](https://docs.astral.sh/uv/) on that server. uv installs Python 3.12 itself if needed.
 - An [Alpaca](https://alpaca.markets/) account with **paper trading** API keys. The free market-data plan is enough.
-- API keys for Anthropic (the proposer, Claude), OpenAI (reviewer 1) and xAI (reviewer 2).
+- API keys for Anthropic (the proposer, Claude) and the reviewers, or existing Hermes authentication for the optional reviewer transport below (Codex OAuth and xAI API key).
 
 ## Setup
 
@@ -56,7 +56,7 @@ It never edits the default profile's `~/.hermes/config.yaml`. At the end it prin
 
 ### 3. Fill in the profile's `.env`
 
-Edit `~/.hermes/profiles/stock-trader/.env`. Every variable must keep a value; the file's comments explain each one. At minimum fill in:
+Edit `~/.hermes/profiles/stock-trader/.env`. The file's comments explain each setting and which blanks are optional. For the default API transport, at minimum fill in:
 
 | Variable | Value |
 |---|---|
@@ -69,6 +69,46 @@ Edit `~/.hermes/profiles/stock-trader/.env`. Every variable must keep a value; t
 | `TRADER_DISCORD_TARGET`, `TRADER_TELEGRAM_TARGET` | Where reports go, e.g. `discord:<channel_id>` and `telegram:<group_chat_id>`. Use the trading channel and group you route in step 6. |
 
 The risk caps (`TRADER_RISK_PCT` and the rest) are already set to the defaults above.
+
+#### Optional: Hermes-backed reviewers (including Codex OAuth)
+
+The default `REVIEWER_n_TRANSPORT=api` keeps the existing direct API path. Either
+slot can instead use `hermes`. The broker still initiates two independent reviews
+in parallel; Hermes supplies only tool-free inference, not an agent loop or trade
+execution. This allows reviewer 1 to use Codex OAuth without an OpenAI API key.
+
+Authenticate the **default Hermes home** through Hermes's own secure setup if it is
+not already configured (`hermes auth add openai-codex` and
+`hermes auth add xai --type api-key`). Never paste tokens into chat or copy rotating
+OAuth tokens into the trading profile. Grok's consumer subscription is not an xAI API key.
+Then set these **broker settings** in the trading profile's `.env`:
+
+```dotenv
+REVIEWER_1_TRANSPORT=hermes
+REVIEWER_1_PROVIDER=openai-codex
+REVIEWER_1_MODEL=<explicit-codex-model-id>
+REVIEWER_2_TRANSPORT=hermes
+REVIEWER_2_PROVIDER=xai
+REVIEWER_2_MODEL=<explicit-grok-model-id>
+TRADER_HERMES_PYTHON=/absolute/path/to/hermes/environment/bin/python3
+TRADER_HERMES_HOME=/home/hermes/.hermes
+```
+
+Use the actual Hermes interpreter, not the broker's Python 3.12 `.venv`: it must
+already import `agent.auxiliary_client` and `dotenv` without `PYTHONPATH`. The auth
+home must be an absolute existing directory owned by the operator. No default home
+or interpreter is guessed. For Hermes slots, the broker does not require or forward
+`OPENAI_API_KEY`/`XAI_API_KEY`; `BASE_URL` and `API_KEY_ENV` apply only to API slots.
+The helper loads the selected home's `.env` and native resolver/auth pools; external
+secret-manager commands are not bootstrapped by the helper. Only `openai-codex` and
+`xai` are accepted; there is no automatic provider/model fallback.
+
+`serve` checks configuration without inference or credential inspection. Missing
+auth, unavailable models, timeouts or malformed replies later produce error outcomes
+and block buys after one retry. The per-attempt timeout includes subprocess startup;
+the total Hermes review budget is twice `REVIEWER_TIMEOUT_S` (120 s by default).
+Keep jobs paused until both exact provider/model routes have been verified separately
+with operator authorization; the automated tests use only fake Hermes modules.
 
 If the targets were empty when you ran the installer, it warned you. Re-run it now; it sets the targets on the existing jobs and changes nothing else:
 

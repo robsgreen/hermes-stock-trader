@@ -47,7 +47,9 @@ def _settings_env_names() -> set[str]:
     for field_name, field in Settings.model_fields.items():
         if field.annotation is ReviewerSettings:
             prefix = field_name.upper()
-            names |= {f"{prefix}_{key.upper()}" for key in ("provider", "base_url", "model")}
+            names |= {
+                f"{prefix}_{key.upper()}" for key in ("provider", "base_url", "model", "transport")
+            }
             names.add(f"{prefix}_API_KEY_ENV")
             names.add(getattr(defaults, field_name).api_key_env)
         elif field.alias:
@@ -73,6 +75,12 @@ def test_settings_env_names_cover_every_kind_of_setting() -> None:
     assert {"TRADER_BROKER_MODE", "TRADER_MAX_STOP_PCT", "ALPACA_SECRET_KEY"} <= names
     assert {"REVIEWER_1_MODEL", "REVIEWER_2_API_KEY_ENV", "REVIEWER_TIMEOUT_S"} <= names
     assert {"OPENAI_API_KEY", "XAI_API_KEY"} <= names
+    assert {
+        "REVIEWER_1_TRANSPORT",
+        "REVIEWER_2_TRANSPORT",
+        "TRADER_HERMES_PYTHON",
+        "TRADER_HERMES_HOME",
+    } <= names
 
 
 def test_both_yaml_files_parse() -> None:

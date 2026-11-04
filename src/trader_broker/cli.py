@@ -31,7 +31,7 @@ from trader_broker.config import ConfigError, Settings
 from trader_broker.market import market_date
 from trader_broker.models import Bar, BracketOrderRequest, Order, round_price
 from trader_broker.report import build_report
-from trader_broker.review import OpenAICompatReviewer
+from trader_broker.review import build_reviewer
 from trader_broker.server import build_server, configure_logging
 from trader_broker.service import TraderService
 from trader_broker.state import StateStore, StateUnavailableError, init_state
@@ -252,7 +252,7 @@ def _serve(args: argparse.Namespace, runtime: _Runtime) -> int:
     """Run the MCP server until stdin closes.
 
     Stops before starting on a configuration error: live mode without its
-    acknowledgement, missing Alpaca keys, or a reviewer without a model or key. A
+    acknowledgement, missing Alpaca keys, or incomplete reviewer configuration. A
     missing state database does not stop it; buys are blocked until `init-state`
     creates one and the server restarts. Prints nothing to stdout, which carries the
     MCP protocol.
@@ -261,7 +261,7 @@ def _serve(args: argparse.Namespace, runtime: _Runtime) -> int:
     settings.require_reviewers()
     broker = runtime.connect(settings)
     reviewers = [
-        OpenAICompatReviewer.from_settings(reviewer, settings.reviewer_timeout_s)
+        build_reviewer(reviewer, settings)
         for reviewer in (settings.reviewer_1, settings.reviewer_2)
     ]
     configure_logging(settings)
