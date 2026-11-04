@@ -1,0 +1,38 @@
+# Routes for the DEFAULT Hermes profile (~/.hermes/config.yaml), so the `stock-trader`
+# profile can use your existing Discord and Telegram bots. The installer only prints this
+# snippet; merge it into the default profile's `gateway:` section by hand and replace the
+# example ids with your trading channel and group.
+#
+# A route sends messages from that chat to `stock-trader`, and lets the profile's cron jobs
+# post there through the shared bot. Cron delivery needs a route with a `chat_id`; a
+# guild-only route does not qualify. Routes require `multiplex_profiles: true`.
+# Source: website/docs/user-guide/multi-profile-gateways.md ("Routing shared-bot chats to
+# profiles"), Hermes Agent v2026.9.24.
+#
+# WARNING: never route a direct-message (DM) chat id. A Telegram DM's chat id is the
+# user's own id, so a DM route would send all of that person's private chats with the bot
+# to the trading agent. Route only the dedicated trading channel and group.
+#
+# WARNING: anyone the default profile's bot accepts who can post in a routed chat can
+# command the trader: sell, close positions, propose buys. A route selects a profile; it is
+# not authorization, which stays with the default profile's allowlist. Use a private channel
+# and group that only you (and the bot) can post in, and keep the default profile's user
+# allowlist to the people you trust with the account. A route with a `user_id` matches only
+# that sender, but cron delivery needs a location-only route (no `user_id`) for the same
+# chat, and that route still matches every other sender, so `user_id` alone does not lock
+# the chat down.
+gateway:
+  multiplex_profiles: true
+  profile_routes:
+    # One channel in your Discord server.
+    - name: stock-trader-discord
+      platform: discord
+      guild_id: "123456789012345678"
+      chat_id: "234567890123456789"
+      profile: stock-trader
+
+    # A Telegram group (group chat ids are negative; no guild concept).
+    - name: stock-trader-telegram
+      platform: telegram
+      chat_id: "-1001234567890"
+      profile: stock-trader
