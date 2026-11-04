@@ -3,7 +3,7 @@
 Last Updated: 2026-11-03 13:12
 Branch: sdlc/hermes-trader-profile
 Worktree: /home/user/hermes-stock-trader-worktrees/hermes-trader-profile
-PR: (none)
+PR: https://github.com/robsgreen/hermes-stock-trader/pull/1
 
 ## Checklist
 
@@ -14,7 +14,7 @@ PR: (none)
 - [x] **Documentation**
 - [x] **Review**
 - [x] **Wrap-up**
-- [ ] **PR**
+- [x] **PR**
 - [ ] **Archive**
 
 ## Session Log
@@ -70,3 +70,5 @@ PR: (none)
 - 2026-11-04 00:34 - Post-mortem written (drift 1H/7M/2L, 4 action items)
 - 2026-11-04 00:35 - Wrap-up: retro docs/specs/202611/hermes-trader-profile.md + AGENTS.md (fc440ae); post-mortem action 4 corrected (user_id routes don't deliver cron)
 - 2026-11-04 00:35 - Phase → PR (gate)
+- 2026-11-04 05:58 - Squashed to 2007947, pushed, draft PR #1 opened
+- 2026-11-04 05:58 - Phase → Archive (gate)

@@ -5,10 +5,10 @@
   "harnessVersion": "0.1.0",
   "rubricVersion": "1.0",
   "specName": "hermes-trader-profile",
-  "generatedAt": "2026-11-04T00:35:45Z",
+  "generatedAt": "2026-11-04T05:58:27Z",
   "specStatus": "in-progress",
   "velocity": {
-    "wallClockMinutes": 683,
+    "wallClockMinutes": 1006,
     "timeToPrMinutes": 683,
     "sessionCount": 1,
     "phaseDurationsMinutes": {
@@ -22,7 +22,7 @@
     }
   },
   "lifecycle": {
-    "furthestPhase": "Wrap-up",
+    "furthestPhase": "PR",
     "stalled": false
   },
   "throughput": {
@@ -31,7 +31,7 @@
     "completionRatio": 1.0000
   },
   "autonomy": {
-    "hardGateInterventions": 1,
+    "hardGateInterventions": 2,
     "resumeCount": 0,
     "reviewFixCycles": 2,
     "subAgentDispatches": 45,
@@ -73,11 +73,15 @@
     "deltaFiles": 38
   },
   "pr": {
-    "prIds": [],
-    "prUrls": []
+    "prIds": [
+      "#1"
+    ],
+    "prUrls": [
+      "https://github.com/robsgreen/hermes-stock-trader/pull/1"
+    ]
   },
   "parseHealth": {
-    "eventsValid": 60,
+    "eventsValid": 64,
     "eventsMalformed": 0,
     "eventsUnknownType": 0,
     "eventsReviewRounds": 3,
