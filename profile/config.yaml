@@ -116,11 +116,11 @@ agent:
   disabled_toolsets: [terminal, code_execution, file, browser]
 
 skills:
-  # Hermes has no toolset that holds only the skill-reading tools: `skills` bundles
-  # skill_manage with skills_list and skill_view. With write approval on, every skill_manage
-  # change is staged for a person to approve (`/skills pending`) instead of being applied,
-  # so the agent can read its trading skills but never rewrite them on its own.
-  write_approval: true
+  # Let this profile apply evidence-based learning to its own trading skills via
+  # skill_manage, including unattended reviews. This changes trading instructions,
+  # not the broker's code-enforced sizing, caps, reviews, halts or credentials.
+  # Source: https://hermes-agent.nousresearch.com/docs/user-guide/features/skills/
+  write_approval: false
 
 # Persistent memory carries lessons between runs. Source: website/docs/user-guide/features/memory.md.
 memory:

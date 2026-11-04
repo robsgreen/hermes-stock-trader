@@ -10,6 +10,7 @@ import asyncio
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -143,8 +144,8 @@ def test_terminal_code_file_and_browser_toolsets_are_disabled(config: dict[str, 
     assert not disabled & {"trader_broker", "web", "x_search", "memory", "skills"}
 
 
-def test_skill_changes_need_approval_and_memory_is_on(config: dict[str, Any]) -> None:
-    assert config["skills"]["write_approval"] is True
+def test_skill_learning_is_autonomous_and_memory_is_on(config: dict[str, Any]) -> None:
+    assert config["skills"]["write_approval"] is False
     assert config["memory"]["memory_enabled"] is True
 
 
@@ -196,6 +197,7 @@ SKILL_NAMES = {
     "trade-analysis",
     "position-review",
     "journal-review",
+    "portfolio-bootstrap",
 }
 TRADER_BROKER_TOOLSET = "mcp-trader_broker"
 """Hermes registers an MCP server's tools under the toolset `mcp-<server name>`, and skill
@@ -236,7 +238,7 @@ def jobs() -> dict[str, dict[str, Any]]:
     return {job["name"]: job for job in _load_yaml("cron/jobs.yaml")["jobs"]}
 
 
-def test_skill_directories_are_exactly_the_five_skills() -> None:
+def test_skill_directories_are_exactly_the_six_skills() -> None:
     skill_dirs = {path.parent.name for path in PROFILE_DIR.glob("skills/trading/*/SKILL.md")}
 
     assert skill_dirs == SKILL_NAMES
@@ -259,7 +261,9 @@ def test_skill_names_only_server_tools(name: str, server_tool_names: set[str]) -
     _, body = _skill(name)
     named_tools = set(TOOL_REFERENCE.findall(body))
 
-    assert named_tools
+    # Bootstrap is a pacing policy that delegates to the other trading skills.
+    if name != "portfolio-bootstrap":
+        assert named_tools
     assert named_tools <= server_tool_names
 
 
@@ -278,6 +282,20 @@ def test_journal_review_records_lessons_in_journal_and_memory() -> None:
     assert 'mcp__trader_broker__get_journal` with `status="pending_lessons"' in body
     assert "mcp__trader_broker__journal_note" in body
     assert "`memory` tool" in body
+
+
+def test_journal_review_learns_from_evidence_without_weakening_broker_protections() -> None:
+    _, body = _skill("journal-review")
+
+    assert "`skill_manage`" in body
+    assert "repeated" in body
+    assert "tentative" in body
+    assert "journal entry IDs" in body
+    assert "Do not loosen broker protections" in body
+    assert "circumvent a rejection" in body
+    assert "Skill changes" in body
+    assert "No skill changes" in body
+    assert "not required on every run" in body
 
 
 def test_jobs_are_exactly_the_five_in_the_profile_timezone(
@@ -628,6 +646,194 @@ def test_second_install_keeps_env_and_creates_no_duplicate_jobs(
     assert "profile_routes" in result.stdout
 
 
+def test_reinstall_preserves_evolved_skills_and_seeds_missing_files(
+    stub_env: dict[str, str],
+) -> None:
+    profile = Path(stub_env["HOME"], ".hermes", "profiles", PROFILE_NAME)
+    _install(stub_env)
+    skills = profile / "skills"
+    evolved = skills / "trading/journal-review/SKILL.md"
+    evolved.write_bytes(b"Local learning\r\n\x00")
+    evolved.chmod(0o600)
+    supporting = evolved.parent / "references/evidence.bin"
+    supporting.parent.mkdir()
+    supporting.write_bytes(b"\x00local evidence\xff")
+    missing = skills / "trading/portfolio-bootstrap/SKILL.md"
+    missing.unlink()
+    before = _snapshot(skills)
+
+    _install(stub_env)
+
+    after = _snapshot(skills)
+    assert {path: after[path] for path in before} == before
+    assert (
+        missing.read_bytes()
+        == (PROFILE_DIR / "skills/trading/portfolio-bootstrap/SKILL.md").read_bytes()
+    )
+    assert not list(skills.rglob("*.bak"))
+
+
+def test_refresh_skills_explicitly_replaces_with_a_backup(stub_env: dict[str, str]) -> None:
+    profile = Path(stub_env["HOME"], ".hermes", "profiles", PROFILE_NAME)
+    _install(stub_env)
+    skill = profile / "skills/trading/journal-review/SKILL.md"
+    skill.write_bytes(b"Learned locally\r\n")
+    skill.chmod(0o600)
+
+    _install(stub_env, "--refresh-skills")
+
+    assert (
+        skill.read_bytes() == (PROFILE_DIR / "skills/trading/journal-review/SKILL.md").read_bytes()
+    )
+    (backup,) = skill.parent.glob("SKILL.md.*.bak")
+    assert backup.read_bytes() == b"Learned locally\r\n"
+    assert backup.stat().st_mode & 0o777 == 0o600
+
+
+@pytest.mark.parametrize("dry_run", [False, True], ids=["upgrade", "dry-run"])
+@pytest.mark.parametrize("missing_soul", [False, True], ids=["evolved-soul", "missing-soul"])
+def test_tooling_only_updates_tooling_without_writing_skills_or_soul(
+    stub_env: dict[str, str],
+    dry_run: bool,
+    missing_soul: bool,
+    jobs: dict[str, dict[str, Any]],
+) -> None:
+    profile = Path(stub_env["HOME"], ".hermes", "profiles", PROFILE_NAME)
+    _install(stub_env)
+    (profile / "SOUL.md").write_bytes(b"Evolved persona\r\n")
+    skill = profile / "skills/trading/journal-review/SKILL.md"
+    skill.write_bytes(b"Evolved skill\r\n")
+    (profile / "skills/trading/market-regime/SKILL.md").unlink()
+    for relative in (
+        ".env",
+        "memories/lessons.md",
+        "sessions/history.jsonl",
+        "pending/skills/test-proposal.json",
+        "broker/paper/state.db",
+        "unrelated.bin",
+    ):
+        path = profile / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"LOCAL_VALUE=preserved\n")
+    # Tooling-only must also not seed a missing SOUL.
+    if missing_soul:
+        (profile / "SOUL.md").unlink()
+    (profile / "config.yaml").write_text("old: config\n")
+    gate = profile / "scripts" / GATE_SCRIPT
+    gate.write_text("old gate\n")
+    store = profile / "cron/jobs.json"
+    stored = json.loads(store.read_text())
+    for index, job in enumerate(stored["jobs"]):
+        job.update(prompt="old prompt", state="paused" if index % 2 else "scheduled")
+    store.write_text(json.dumps(stored))
+    before = _snapshot(profile)
+    calls_before = len(_hermes_calls(stub_env))
+    uv_log = Path(stub_env["STUB_LOG"], "uv.calls")
+    uv_before = uv_log.read_text()
+
+    result = _install(stub_env, "--tooling-only", *(["--dry-run"] if dry_run else []))
+
+    new_uv_calls = uv_log.read_text()[len(uv_before) :]
+    if dry_run:
+        assert "uv sync" in result.stdout
+        assert "sync --directory" not in new_uv_calls
+        assert _snapshot(profile) == before
+        assert len(_hermes_calls(stub_env)) == calls_before
+        return
+    assert f"sync --directory {PROFILE_DIR.parent}\n" in new_uv_calls
+    for path, contents in before.items():
+        if path not in {profile / "config.yaml", gate, store}:
+            assert (path.read_bytes(), path.stat().st_mode) == contents
+    assert _snapshot(profile / "skills") == {
+        path: contents
+        for path, contents in before.items()
+        if path.is_relative_to(profile / "skills")
+    }
+    assert (profile / "SOUL.md").exists() is not missing_soul
+    config = yaml.safe_load((profile / "config.yaml").read_text())
+    assert config["model"]["default"] == MODEL
+    assert config["skills"]["write_approval"] is False
+    assert config["mcp_servers"]["trader_broker"]["args"][2] == str(PROFILE_DIR.parent)
+    assert f'INSTALL_DIR="{PROFILE_DIR.parent}"' in gate.read_text()
+    assert os.access(gate, os.X_OK)
+    for name, job in _stored_jobs(stub_env).items():
+        original = next(item for item in stored["jobs"] if item["name"] == name)
+        assert job["state"] == original["state"]
+        assert job["prompt"] == jobs[name]["prompt"].strip()
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+@pytest.mark.parametrize("existing", [False, True])
+def test_tooling_only_refuses_missing_profile_or_conflicting_refresh_before_changes(
+    stub_env: dict[str, str], dry_run: bool, existing: bool
+) -> None:
+    home = Path(stub_env["HOME"])
+    if existing:
+        _install(stub_env)
+    before = _snapshot(home)
+    calls_before = len(_hermes_calls(stub_env))
+    args = ["--tooling-only"]
+    if existing:
+        args.append("--refresh-skills")
+    if dry_run:
+        args.append("--dry-run")
+
+    result = _run(INSTALLER, stub_env, "--model", MODEL, *args)
+
+    assert result.returncode == 2
+    assert ("conflict" if existing else "existing profile") in result.stderr
+    assert _snapshot(home) == before
+    assert len(_hermes_calls(stub_env)) == calls_before
+
+
+def test_repeated_refreshes_do_not_overwrite_existing_backups(stub_env: dict[str, str]) -> None:
+    date_stub = Path(stub_env["PATH"].split(os.pathsep)[0], "date")
+    date_stub.write_text("#!/usr/bin/env bash\nprintf 'fixed-timestamp\\n'\n")
+    date_stub.chmod(0o755)
+    profile = Path(stub_env["HOME"], ".hermes", "profiles", PROFILE_NAME)
+    _install(stub_env)
+    skill = profile / "skills/trading/journal-review/SKILL.md"
+    for version in (b"first lesson", b"second lesson"):
+        skill.write_bytes(version)
+        _install(stub_env, "--refresh-skills")
+    assert {path.read_bytes() for path in skill.parent.glob("SKILL.md.*.bak")} == {
+        b"first lesson",
+        b"second lesson",
+    }
+
+
+def test_repository_supporting_skill_files_are_seeded_preserved_and_explicitly_refreshed(
+    stub_env: dict[str, str], tmp_path: Path
+) -> None:
+    # Isolate source additions; never edit the real source tree or copy dotenv/swap files.
+    checkout = tmp_path / "checkout"
+    shutil.copytree(SCRIPTS_DIR, checkout / "scripts")
+    for relative in ("skills", "cron"):
+        shutil.copytree(PROFILE_DIR / relative, checkout / "profile" / relative)
+    for name in ("config.yaml", "SOUL.md", ".env.example", "profile_routes.example.yaml"):
+        shutil.copy2(PROFILE_DIR / name, checkout / "profile" / name)
+    relative = Path("skills/trading/journal-review/references/evidence.bin")
+    source = checkout / "profile" / relative
+    source.parent.mkdir()
+    source.write_bytes(b"repository evidence\x00")
+    installer = checkout / "scripts/install-profile.sh"
+    profile = Path(stub_env["HOME"], ".hermes", "profiles", PROFILE_NAME)
+    installed = profile / relative
+    assert _run(installer, stub_env, "--model", MODEL).returncode == 0
+    assert installed.read_bytes() == source.read_bytes()
+    installed.write_bytes(b"local evidence\xff")
+    installed.chmod(0o600)
+    before = _snapshot(profile / "skills")
+
+    assert _run(installer, stub_env, "--model", MODEL).returncode == 0
+    assert _snapshot(profile / "skills") == before
+
+    assert _run(installer, stub_env, "--model", MODEL, "--refresh-skills").returncode == 0
+    assert installed.read_bytes() == source.read_bytes()
+    (backup,) = installed.parent.glob("evidence.bin.*.bak")
+    assert backup.read_bytes() == b"local evidence\xff"
+
+
 def test_reinstall_edits_a_job_that_differs_from_jobs_yaml_and_keeps_it_paused(
     stub_env: dict[str, str], jobs: dict[str, dict[str, Any]]
 ) -> None:
@@ -772,21 +978,29 @@ def _snapshot(directory: Path) -> dict[Path, tuple[bytes, int]]:
     return {path: (path.read_bytes(), path.stat().st_mode) for path in _files_under(directory)}
 
 
+@pytest.mark.parametrize("flags", [(), ("--refresh-skills",)], ids=["preserve", "refresh"])
 def test_dry_run_over_an_installed_profile_reports_changes_and_writes_nothing(
     stub_env: dict[str, str],
+    flags: tuple[str, ...],
 ) -> None:
     home = Path(stub_env["HOME"])
     profile = home / ".hermes" / "profiles" / PROFILE_NAME
     _install(stub_env)
     (profile / "SOUL.md").write_text("Edited on the server by hand.\n")
+    skill = profile / "skills/trading/journal-review/SKILL.md"
+    skill.write_bytes(b"Local lessons\r\n")
     (profile / ".env").write_text("ALPACA_API_KEY=kept\n")
     before = _snapshot(home)
     calls_before = len(_hermes_calls(stub_env))
 
-    result = _run(INSTALLER, stub_env, "--model", MODEL, "--dry-run")
+    result = _run(INSTALLER, stub_env, "--model", MODEL, "--dry-run", *flags)
 
     assert result.returncode == 0, result.stderr
     assert f"would back up and replace {profile / 'SOUL.md'}" in result.stdout
+    if flags:
+        assert f"would back up and replace {skill}" in result.stdout
+    else:
+        assert f"preserved installed skill file {skill}" in result.stdout
     assert "would create" not in result.stdout
     assert "profile stock-trader already exists" in result.stdout
     assert result.stdout.count("already exists") >= len(JOB_TIMES)

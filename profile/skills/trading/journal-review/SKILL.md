@@ -1,7 +1,7 @@
 ---
 name: journal-review
 description: Read settled trades awaiting a lesson, compare each with SPY over the same holding window, record the lesson with journal_note and keep durable lessons in memory; also builds the weekly scorecard against SPY.
-version: 1.0.0
+version: 1.1.0
 metadata:
   hermes:
     category: trading
@@ -19,11 +19,18 @@ After the day's exits, to turn settled trades into lessons, and for the weekly s
 
 ### Lessons from settled trades
 
-1. Call `mcp__trader_broker__get_journal` with `status="pending_lessons"`. Each entry is a closed trade with `trade_return_pct`, `spy_return_pct` (SPY over the same holding window) and `alpha_pct` (the difference), all as shares of a whole (0.05 is 5%). If the list is empty, say so and stop.
+1. Call `mcp__trader_broker__get_journal` with `status="pending_lessons"`. Each entry is a closed trade with `trade_return_pct`, `spy_return_pct` (SPY over the same holding window) and `alpha_pct` (the difference), all as shares of a whole (0.05 is 5%). If the list is empty, say so; still complete any requested scorecard and the Skill changes summary.
 2. For each entry, re-read the thesis and invalidation and work out what happened: stopped out, target hit, closed early, or held past the horizon; whether the stated earnings date was right; whether the trade beat SPY.
 3. Write a lesson of one or two sentences: specific and actionable, about the setup, the levels or the timing, not about luck. Example: "Breakouts on under 1.5x volume in a defensive tape failed 3 of 3; wait for volume."
 4. Call `mcp__trader_broker__journal_note` with the entry's `id` as `entry_id` and the lesson as `note`. This stores the lesson and clears the pending flag.
 5. When a lesson is a durable pattern (it repeats an earlier lesson, or it would change how you trade), save it with the `memory` tool as one line starting `Trading lesson:`. Memory is small: merge it into a similar existing lesson with `replace` rather than adding a near-duplicate, and remove lessons that later trades contradicted.
+
+### Evidence-based skill learning
+
+1. Separate tentative observations from durable rules. Keep isolated or inconclusive results in the journal or memory as tentative; do not turn one win, loss or rejected proposal into a universal rule.
+2. After repeated outcomes or other supporting evidence justify a reusable process improvement, use `skill_view` and `skill_manage` to update your own installed trading skills. Cite journal entry IDs, dates, outcomes and applicability limits; consider counterexamples and revise rules contradicted by later evidence. The installed skills are the learning source of truth; no Git synchronization is required.
+3. Do not loosen broker protections (sizing, risk caps, reviews, halts, stops or live-mode controls), change credentials or tools, or circumvent a rejection. Learning may improve setup selection, research, timing and reporting, but cannot authorize bypassing the broker.
+4. In every routine review report, include a concise **Skill changes** section: what changed, why, and the journal evidence. If evidence is insufficient or no improvement is needed, say **No skill changes** and briefly why. Editing is not required on every run.
 
 ### Weekly scorecard
 

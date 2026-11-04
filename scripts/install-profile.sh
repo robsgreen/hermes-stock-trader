@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 # Install or update the Hermes `stock-trader` profile from this repository.
 #
-# Usage: scripts/install-profile.sh [--model CLAUDE_MODEL_ID] [--enable-jobs] [--dry-run]
+# Usage: scripts/install-profile.sh [--model CLAUDE_MODEL_ID] [--enable-jobs]
+#                                  [--refresh-skills | --tooling-only] [--dry-run]
 #
 #   --model ID     Claude model id written into the profile's config.yaml (model.default).
 #                  Defaults to $ANTHROPIC_MODEL. Required unless --dry-run.
 #   --enable-jobs  Create missing scheduled jobs active. By default they are created paused.
 #                  Existing jobs keep their paused or active state either way.
+#   --refresh-skills Replace differing repository skill files, with unique backups.
+#                  Default: seed missing skill files; preserve existing files byte-for-byte.
+#   --tooling-only Update dependencies, config, MCP, gate script and jobs for an existing
+#                  profile; never write skills or SOUL.md, even if missing. Conflicts with
+#                  --refresh-skills. Config is replaced, not merged; still requires --model.
 #   --dry-run      Print what would change and the commands that would run; change nothing
 #                  under ~/.hermes. (uv may still create this checkout's .venv to read
 #                  profile/cron/jobs.yaml.)
 #
-# Safe to re-run: the profile is created only if absent, files that already match are left
-# alone, and a changed file is backed up with a timestamp suffix before it is replaced. The
+# Safe to re-run: installed skills are the learning source of truth, including supporting
+# files. Existing skill files are preserved unless --refresh-skills is explicit. Other
+# managed files are backed up with a unique timestamp suffix before replacement. The
 # profile's .env is written from .env.example only while it has no NAME=value line (absent,
 # or the comment-only placeholder `hermes profile create` seeds); a .env with settings is
 # never overwritten. A scheduled job is created only if no job with its name exists; an
@@ -32,16 +39,20 @@ SOURCE_DIR="$INSTALL_DIR/profile"
 PROFILE_DIR="$HOME/.hermes/profiles/$PROFILE_NAME"
 
 usage() {
-    sed -n '4,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '/^# Usage:/,/^# Safe to re-run:/{ /^# Safe to re-run:/d; s/^# \{0,1\}//; p; }' "${BASH_SOURCE[0]}"
 }
 
 dry_run=0
 enable_jobs=0
+refresh_skills=0
+tooling_only=0
 model="${ANTHROPIC_MODEL:-}"
 while (($# > 0)); do
     case $1 in
         --dry-run) dry_run=1 ;;
         --enable-jobs) enable_jobs=1 ;;
+        --refresh-skills) refresh_skills=1 ;;
+        --tooling-only) tooling_only=1 ;;
         --model)
             [[ $# -ge 2 ]] || { echo "--model needs a value" >&2; exit 2; }
             model=$2
@@ -69,9 +80,9 @@ run() {
 }
 
 # Copy SRC to DEST with permission MODE, unless DEST already has the same content.
-# An existing, different DEST is first kept as DEST.<timestamp>.bak.
+# An existing, different DEST is first kept as DEST.<timestamp>.<unique>.bak.
 install_file() {
-    local src=$1 dest=$2 mode=$3
+    local src=$1 dest=$2 mode=$3 backup
     if [[ -f $dest ]] && cmp -s "$src" "$dest"; then
         return 0
     fi
@@ -85,8 +96,10 @@ install_file() {
     fi
     mkdir -p "$(dirname "$dest")"
     if [[ -e $dest ]]; then
-        cp -p "$dest" "$dest.$timestamp.bak"
-        say "backed up $dest to $dest.$timestamp.bak"
+        # Unique even when several upgrades run in the same second.
+        backup="$(mktemp "$dest.$timestamp.XXXXXX.bak")"
+        cp -p "$dest" "$backup"
+        say "backed up $dest to $backup"
     fi
     cp "$src" "$dest"
     chmod "$mode" "$dest"
@@ -175,6 +188,15 @@ for job in yaml.safe_load(jobs_file.read_text())["jobs"]:
 
 # --- Preflight ---------------------------------------------------------------------------
 
+if ((tooling_only && refresh_skills)); then
+    echo "--tooling-only and --refresh-skills conflict" >&2
+    exit 2
+fi
+if ((tooling_only)) && [[ ! -d $PROFILE_DIR ]]; then
+    echo "--tooling-only requires an existing profile: $PROFILE_DIR" >&2
+    exit 2
+fi
+
 missing=()
 for tool in hermes uv; do
     command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
@@ -228,10 +250,19 @@ else
 fi
 
 install_rendered "$SOURCE_DIR/config.yaml" "$PROFILE_DIR/config.yaml" 644
-install_file "$SOURCE_DIR/SOUL.md" "$PROFILE_DIR/SOUL.md" 644
-while IFS= read -r -d '' skill_file; do
-    install_file "$skill_file" "$PROFILE_DIR/skills/${skill_file#"$SOURCE_DIR/skills/"}" 644
-done < <(find "$SOURCE_DIR/skills" -type f -print0 | sort -z)
+if (( ! tooling_only )); then
+    install_file "$SOURCE_DIR/SOUL.md" "$PROFILE_DIR/SOUL.md" 644
+    while IFS= read -r -d '' skill_file; do
+        destination="$PROFILE_DIR/skills/${skill_file#"$SOURCE_DIR/skills/"}"
+        if (( ! refresh_skills )) && [[ -e $destination || -L $destination ]]; then
+            say "preserved installed skill file $destination"
+            continue
+        fi
+        install_file "$skill_file" "$destination" 644
+    done < <(find "$SOURCE_DIR/skills" -type f -print0 | sort -z)
+else
+    say "tooling-only: skills and SOUL.md left unchanged (no seeding)"
+fi
 install_rendered "$INSTALL_DIR/scripts/market-open-gate.sh" \
     "$PROFILE_DIR/scripts/market-open-gate.sh" 755
 
