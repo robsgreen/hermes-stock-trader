@@ -75,3 +75,4 @@ PR: https://github.com/robsgreen/hermes-stock-trader/pull/1
 - 2026-11-04 06:04 - Archive confirmed by user (PR #1 still open draft)
 - 2026-11-04 06:04 - Worktree tip: sdlc/hermes-trader-profile 2007947 (pushed to origin)
 - 2026-11-04 06:04 - worktree removed (clean); local branch kept (PR not merged)
+- 2026-11-04 06:08 - PR #1 merged (d805834); local branch deleted; sdlc-backup dropped
