@@ -2,7 +2,7 @@
 
 Last Updated: 2026-11-03 13:12
 Branch: sdlc/hermes-trader-profile
-Worktree: /home/user/hermes-stock-trader-worktrees/hermes-trader-profile
+Worktree: (removed)
 PR: https://github.com/robsgreen/hermes-stock-trader/pull/1
 
 ## Checklist
@@ -15,7 +15,7 @@ PR: https://github.com/robsgreen/hermes-stock-trader/pull/1
 - [x] **Review**
 - [x] **Wrap-up**
 - [x] **PR**
-- [ ] **Archive**
+- [x] **Archive**
 
 ## Session Log
 
@@ -72,3 +72,6 @@ PR: https://github.com/robsgreen/hermes-stock-trader/pull/1
 - 2026-11-04 00:35 - Phase → PR (gate)
 - 2026-11-04 05:58 - Squashed to 2007947, pushed, draft PR #1 opened
 - 2026-11-04 05:58 - Phase → Archive (gate)
+- 2026-11-04 06:04 - Archive confirmed by user (PR #1 still open draft)
+- 2026-11-04 06:04 - Worktree tip: sdlc/hermes-trader-profile 2007947 (pushed to origin)
+- 2026-11-04 06:04 - worktree removed (clean); local branch kept (PR not merged)

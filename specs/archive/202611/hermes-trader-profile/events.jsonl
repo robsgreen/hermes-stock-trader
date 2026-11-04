@@ -62,3 +62,6 @@
 {"event":"gate_confirmed","ts":"2026-11-04 05:57","gate":"pr"}
 {"event":"pr_created","ts":"2026-11-04 05:58","prId":"#1","prUrl":"https://github.com/robsgreen/hermes-stock-trader/pull/1"}
 {"event":"phase_start","ts":"2026-11-04 05:58","phase":"archive"}
+{"event":"gate_prompted","ts":"2026-11-04 06:04","gate":"archive"}
+{"event":"gate_confirmed","ts":"2026-11-04 06:04","gate":"archive"}
+{"event":"archived","ts":"2026-11-04 06:04"}

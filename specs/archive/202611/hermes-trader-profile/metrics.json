@@ -5,10 +5,10 @@
   "harnessVersion": "0.1.0",
   "rubricVersion": "1.0",
   "specName": "hermes-trader-profile",
-  "generatedAt": "2026-11-04T05:58:27Z",
-  "specStatus": "in-progress",
+  "generatedAt": "2026-11-04T06:04:22Z",
+  "specStatus": "complete",
   "velocity": {
-    "wallClockMinutes": 1006,
+    "wallClockMinutes": 1012,
     "timeToPrMinutes": 683,
     "sessionCount": 1,
     "phaseDurationsMinutes": {
@@ -22,7 +22,7 @@
     }
   },
   "lifecycle": {
-    "furthestPhase": "PR",
+    "furthestPhase": "Archive",
     "stalled": false
   },
   "throughput": {
@@ -31,7 +31,7 @@
     "completionRatio": 1.0000
   },
   "autonomy": {
-    "hardGateInterventions": 2,
+    "hardGateInterventions": 3,
     "resumeCount": 0,
     "reviewFixCycles": 2,
     "subAgentDispatches": 45,
@@ -81,7 +81,7 @@
     ]
   },
   "parseHealth": {
-    "eventsValid": 64,
+    "eventsValid": 67,
     "eventsMalformed": 0,
     "eventsUnknownType": 0,
     "eventsReviewRounds": 3,
