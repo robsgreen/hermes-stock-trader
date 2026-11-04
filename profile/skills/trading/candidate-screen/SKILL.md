@@ -29,7 +29,8 @@ After the `market-regime` skill has set today's posture, when you need fresh tra
    - the price is under $5 (the server would block the buy);
    - it trades below a falling 50-day average;
    - it is more than about 20% above its 20-day average (chasing);
-   - it has neither a fresh catalyst nor a clean trend.
+   - it has neither a fresh catalyst nor a clean trend;
+   - most of its move is from *today's* live session on a catalyst that broke today (same-day earnings, same-day upgrade) — don't drop these outright, but flag them as "wait for confirmation" rather than ranking them as ready now: `propose_buy`'s reviewers price extension off the last closed daily bar, so a same-day spike almost always reads as a chase today even when the catalyst is real. Put it on the watchlist and revisit once today's bar closes.
 5. Keep the setups that fit:
    - **Breakout**: closes above a multi-week base on volume at least 1.5 times its 20-day average.
    - **Pullback**: an uptrend pulling back to a rising 20- or 50-day average on lighter volume.
