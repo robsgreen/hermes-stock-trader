@@ -128,3 +128,33 @@ Final checks: pass
 
 ## Two-round cap
 P39–P43 are money-safety defects in the code the fix round added. P39, P40 and P41 were reproduced. Per Fix Once step 7, no second fix set runs on its own initiative, so these go to the user for a decision.
+
+## Round 3: user-directed escalation past the cap (cycle 3)
+The user chose option A, one more fix round.
+- Fix commit 63642bc fixed P39–P44, each with a regression test that failed before the fix. The suite is at 600 passed.
+- Both seats re-reviewed the fix in scoped mode. Both report P39–P44 resolved, with no new findings.
+
+review_round 3: all counts 0.
+
+Observations, not findings. They can only be checked against a live paper account and are carried into the user's paper checklist:
+- O1. If Alpaca's `status=open&nested=true` lists a filled bracket's working legs at the top level, the merged open read would list those legs twice. The duplicate copy has no `parent_id`.
+  - Exit cancels: harmless.
+  - `tighten_stop`: could report `failed` after it has already raised the stop once.
+  - Possible hardening: dedupe after flattening, keyed on the flattened order id.
+- O2. Housekeeping and `_reprotect` still read only the newest 500 orders of every status. A `tb-` stop older than that window gets a duplicate repair stop, which the broker refuses. Not reached for many weeks at a few orders a day.
+- O3. Pre-existing race: housekeeping reads orders before positions. If a take-profit leg fills between those two reads, a standalone stop may be cancelled as excess, and the next pass repairs it.
+- P28 (efficiency) stays an observation.
+
+## Final checks (after round 3, HEAD 63642bc)
+
+- Check: uv run ruff check . → pass
+- Check: uv run ruff format --check . → pass
+- Check: uv run mypy src → pass
+- Check: uv run pytest -m 'not paper' -q → pass
+Final checks: pass
+
+## Resolution
+- All gating findings are resolved: P1–P3 and the selected set, P39–P44 included.
+- No Tier 1 or Tier 2 contract gate.
+
+Review complete.
