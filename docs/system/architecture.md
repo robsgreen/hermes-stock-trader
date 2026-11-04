@@ -415,7 +415,7 @@ Identifiers are from <https://github.com/NousResearch/hermes-agent/blob/v2026.9.
 | `trader_broker` → runtime `mcp-trader_broker` | the 16 `mcp__trader_broker__*` tools | **enabled**. Each MCP server gets a dynamic `mcp-<server>` toolset, and the bare server name is an alias ("Dynamic Toolsets → MCP server toolsets"). The skills' `requires_toolsets` names `mcp-trader_broker`. |
 | `web` | `web_search`, `web_extract` | **enabled**: news and the next earnings date. |
 | `memory` | `memory` | **enabled**: lessons between runs. `memory.memory_enabled: true`. |
-| `skills` | `skills_list`, `skill_view`, `skill_manage` | **enabled**, with `skills.write_approval: true`. |
+| `skills` | `skills_list`, `skill_view`, `skill_manage` | **enabled**, with `skills.write_approval: false` for autonomous evidence-based learning in this profile. |
 | `terminal` | `terminal`, `process_manage` | **disabled** |
 | `code_execution` | `execute_code` | **disabled** |
 | `file` | `read_file`, `write_file`, `patch`, `search_files` | **disabled** |
@@ -426,7 +426,7 @@ These are set in two places:
 - `platform_toolsets` gives `cli`, `cron`, `discord` and `telegram` the same allowlist: `[trader_broker, web, x_search, memory, skills]`. Naming an MCP server in such a list also limits MCP tools to that server.
 - `agent.disabled_toolsets: [terminal, code_execution, file, browser]` removes those toolsets on every platform after the allowlists are applied, so a platform list that still names one cannot bring it back. It does not hold against the operator: explicitly enabling one of these toolsets for a platform with `hermes tools` removes it from `disabled_toolsets`. Re-running the installer restores `config.yaml`, keeping the edited file as a backup. Sources: `website/docs/user-guide/configuration.md`, "Global Toolset Disable"; `hermes_cli/tools_config.py`.
 
-Hermes has no toolset that holds only the skill-reading tools, and `skill_manage` cannot be disabled on its own. So skill writes are handled through `skills.write_approval: true` instead: every `skill_manage` change is staged for a person to approve (`/skills pending`) rather than applied.
+Hermes's `skills` toolset bundles reading and `skill_manage`. This profile deliberately sets `skills.write_approval: false`, so its agent can apply changes to its own trading skills during unattended reviews. Installed skills are the learning source of truth; repository copies seed missing files and no Git synchronization is required. Changes can affect setup selection, timing and other trading behavior. They do not change the broker's code-enforced sizing, caps, independent review, halts or live-mode guard, nor grant access to credentials or general file/shell tools. Existing pending proposals are neither replayed nor deleted by the installer. This setting is scoped to the trader template, not the default or other profiles.
 
 The rest of the config is a backstop:
 
@@ -435,7 +435,7 @@ The rest of the config is a backstop:
 
 ### Skills
 
-`profile/skills/trading/` holds five skills. Each has `metadata.hermes.category: trading` and `requires_toolsets: [mcp-trader_broker]`, and each names the `mcp__trader_broker__*` tools it calls.
+`profile/skills/trading/` holds six skills. Each has `metadata.hermes.category: trading` and `requires_toolsets: [mcp-trader_broker]`. Skills that directly call broker tools use their `mcp__trader_broker__*` names; portfolio bootstrap delegates to the other skills.
 
 | Skill | Job |
 |---|---|
@@ -443,7 +443,10 @@ The rest of the config is a backstop:
 | `candidate-screen` | Setups from movers, news and the watchlist. |
 | `trade-analysis` | Technical, fundamental and news case. Finds the next earnings date by web search and states it in the thesis. Calls `propose_buy` without a share count. |
 | `position-review` | Re-checks open trades against their invalidation. Uses `tighten_stop`, `sell` and `close_position`. |
-| `journal-review` | Works through `get_journal(status="pending_lessons")`, compares with SPY, records lessons with `journal_note` and in memory. |
+| `journal-review` | Works through `get_journal(status="pending_lessons")`, compares with SPY, records lessons with `journal_note` and in memory; evolves trading skills when supported by evidence. |
+| `portfolio-bootstrap` | Paces an empty or near-empty portfolio across sessions without forcing entries or relaxing standards. |
+
+Journal review keeps tentative observations separate from durable rules. Repeated outcomes or other supporting evidence can justify `skill_manage` updates to installed trading skills, with journal entry IDs, dates, applicability limits and counterexamples. It must not loosen broker protections or circumvent rejections. Routine review reports include **Skill changes** (what, why, journal evidence), or **No skill changes** with a short reason; an edit is not required every run. New installs receive these instructions. Existing learned journal-review files remain unchanged on normal upgrades; an operator may deliberately update the installed skill separately instead of resetting it with `--refresh-skills`.
 
 ### Cron schedule and the gate script
 
@@ -478,18 +481,20 @@ A route selects a profile; it does not authorize anyone. Authorization stays wit
 
 ### Installer
 
-`scripts/install-profile.sh [--model ID] [--enable-jobs] [--dry-run]` can be re-run safely. It:
+`scripts/install-profile.sh [--model ID] [--enable-jobs] [--refresh-skills | --tooling-only] [--dry-run]` can be re-run. Its overwrite boundaries are deliberate:
 
-1. checks that `hermes` and `uv` are installed, that the model id uses only letters, digits and `._:/@+-` (it is written unquoted into `config.yaml`), and that the checkout path uses only letters, digits and `._/+-` (it is written into `config.yaml` and into the gate script's bash string);
+1. rejects conflicting `--refresh-skills` / `--tooling-only` flags and rejects `--tooling-only` unless the profile already exists (also in dry runs); checks that `hermes` and `uv` are installed, that the model id uses only letters, digits and `._:/@+-` (it is written unquoted into `config.yaml`), and that the checkout path uses only letters, digits and `._/+-` (it is written into `config.yaml` and into the gate script's bash string);
 2. runs `uv sync`;
 3. creates the profile with `hermes profile create stock-trader --no-skills` if it is absent, so Hermes's bundled skills are not seeded;
-4. copies `config.yaml` (filling in `<INSTALL_DIR>` and `<ANTHROPIC_MODEL>`), `SOUL.md`, the skills and the gate script, backing up any changed file with a timestamp suffix;
+4. replaces differing `config.yaml` (filling in `<INSTALL_DIR>` and `<ANTHROPIC_MODEL>`) and gate script, and normally `SOUL.md`, keeping backups with unique timestamped suffixes. Config is a whole-file replacement, not a merge: local config-only customizations can be reset, including model/provider, MCP, toolsets and timezone. The model must still be supplied for tooling-only upgrades; use the current installed model. Normal installs seed missing repository skill files, including supporting files, but preserve existing skill files byte-for-byte. `--refresh-skills` explicitly replaces differing repository skill files with backups; extra files are not pruned. `--tooling-only` never writes skills or `SOUL.md`, even if absent;
 5. writes `.env` from `.env.example` (mode 600) while the profile's `.env` has no `NAME=value` line. `hermes profile create` seeds a comment-only `.env` (`hermes_cli/profiles.py`, `_finish_profile_layout`), which is backed up and replaced; a `.env` with settings is never touched;
 6. reads the profile's existing jobs from `cron/jobs.json` (`hermes cron list` does not print prompts) and, by job name:
    - runs `hermes -p stock-trader cron create` for a missing job, with `--paused` unless `--enable-jobs` is given;
    - runs `hermes -p stock-trader cron edit <job id>` with only the settings that differ from `jobs.yaml` (schedule, prompt, skills, script, delivery targets). `cron edit` leaves the job paused or active as it was. Empty delivery targets are not compared, so a job's targets are never cleared.
 
 `--dry-run` prints each change and command instead of running it and changes nothing under `~/.hermes`; uv may still create the checkout's `.venv` to read `jobs.yaml`.
+
+Every mode preserves populated `.env`, broker databases/logs, memories, sessions, pending approvals and unrelated files. No mode applies pending skill proposals or synchronizes learned skills back to Git. Keep local skill backups separately. Dependencies and managed cron definitions still update in tooling-only mode; existing jobs keep their paused/enabled state. The installer never restarts the gateway or initializes broker state.
 
 It never writes `~/.hermes/config.yaml`. Instead it prints the routes snippet and the next steps: fill in `.env`, run `init-state` and `smoke-test`, merge the routes, then resume the jobs.
 

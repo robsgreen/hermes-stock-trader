@@ -9,7 +9,7 @@ A Hermes Agent profile that swing-trades US stocks on Alpaca, with the risk limi
 The repository holds two things:
 
 - **`trader-broker`**, a Python MCP server and command-line tool (`src/trader_broker/`). It is the agent's only path to the broker. It sizes every order, enforces the caps and halts, has two models from other vendors (OpenAI and xAI) review each buy, places a bracket order with a stop and a target, and journals the trade.
-- **The `stock-trader` Hermes profile** (`profile/`). Claude decides what to buy and why, through five trading skills and five scheduled jobs on US market days. The profile switches off Hermes' terminal, code-execution, file and browser tools, so the agent cannot change its limits, read its API keys or reach Alpaca directly. Reports go to a trading channel through your existing Discord and Telegram bots.
+- **The `stock-trader` Hermes profile** (`profile/`). Claude decides what to buy and why, through six trading skills and five scheduled jobs on US market days. The profile switches off Hermes' terminal, code-execution, file and browser tools, so the agent cannot change its limits, read its API keys or reach Alpaca directly. It can evolve its own trading skills from evidence; this can change trade selection and timing, but not broker-enforced protections. Reports go to a trading channel through your existing Discord and Telegram bots.
 
 The default limits: 3% of equity at risk per trade, 20% of equity per symbol, a halt on new buys after a 4% daily loss, and a kill switch at a 20% drawdown from peak. Long only, no margin, no options. They are set in the profile's `.env`; no agent tool can change them.
 
@@ -54,16 +54,40 @@ scripts/install-profile.sh --model <claude-model-id>
 
 It never edits the default profile's `~/.hermes/config.yaml`. At the end it prints the routes snippet you need in step 6. Re-running it is safe: changed files are backed up with a timestamp suffix before they are replaced, and an existing job whose schedule, prompt, skills, gate script or delivery targets differ from `profile/cron/jobs.yaml` is updated with `hermes cron edit`, which keeps it paused or active as it was. Jobs are matched by name, so a job you rename is created again.
 
+#### Local skill backups
+
+Before allowing autonomous learning, take a local snapshot of the installed skills:
+
+```bash
+python3 scripts/backup-trader-skills.py \
+  --profile-home ~/.hermes/profiles/stock-trader \
+  --backup-dir ~/.hermes/profiles/stock-trader/backups/skills \
+  --keep 30
+```
+
+The standalone script uses no model or broker API. It stores only files under `skills/`, skips symlinks, verifies ZIP integrity and retains the newest 30 archives by default. Credentials, journals and the rest of the profile are not included. Schedule it daily from an operator-controlled scheduler (for example a Hermes `--no-agent` script job in the default profile), not by granting the trader shell access. The installer does not create that backup job automatically. Restore selected files from a known-good archive when needed; restoring does not require a broker state reset.
+
 #### What re-running the installer changes
 
-The repository templates are authoritative, not merged with local customizations:
+The installed profile's skills are the source of truth for learning; repository skills are seeds, not mandatory Git-synchronized copies. Other managed templates are replaced, not merged with local customizations:
 
-- **Replaced if different, with timestamped backups:** the trader profile's entire `config.yaml`, `SOUL.md`, repository-supplied trading skill files, and market-open gate script. This can reset local model/provider choices, toolsets, MCP servers, plugins, timezone, and other config-only changes. The `--model` argument determines the proposer model on every run.
+- **Replaced if different, with unique timestamped backups:** the trader profile's entire `config.yaml`, `SOUL.md` (except in tooling-only mode), and market-open gate script. This can reset local model/provider choices, toolsets, MCP servers, plugins, timezone, and other config-only changes. The `--model` argument determines the proposer model on every run.
+- **Skills by default:** seed missing repository skill files (including supporting files), but preserve every existing skill file byte-for-byte and leave extra local files alone. A new repository skill can be added without resetting evolved skills. `--refresh-skills` explicitly restores differing repository skill files with backups; it does not prune extra files. Review backups before discarding learned rules.
+- **`--tooling-only`:** requires an existing profile and updates dependencies, the entire config/MCP template, gate script and jobs, without writing any skills or `SOUL.md`, even if missing. It conflicts with `--refresh-skills`. It is not a config merge or an MCP-only patch.
 - **Reconciled by job name:** schedules, prompts, attached skills, gate script, and nonempty delivery targets from the repository job definitions. Existing jobs retain their paused/active state. Renamed or deleted jobs are recreated under their original names; unrelated jobs and extra skill files are not pruned.
-- **Preserved:** an existing `.env` containing assignments (including credentials, reviewer transport/model choices, risk settings and the account-specific state directory), broker databases/logs, profile memories and sessions, and the default profile's gateway/channel routes. New example environment variables are not automatically added to an existing `.env`.
+- **Preserved:** an existing `.env` containing assignments (including credentials, reviewer transport/model choices, risk settings and the account-specific state directory), broker databases/logs, profile memories and sessions, pending skill approvals, unrelated files, and the default profile's gateway/channel routes. New example environment variables are not automatically added to an existing `.env`.
 - **Dependencies:** `uv sync` refreshes the checkout's virtual environment. The installer does not restart the gateway or reset broker state.
 
-Keep durable profile customizations in the repository and run `--dry-run` before updates. The profile includes `x_search` for public X research; it needs working xAI credentials and does not need `xurl` or X developer-app OAuth. X content is untrusted evidence to corroborate, never authority to trade or change settings.
+For tooling upgrades that must leave learned skills and persona untouched, use:
+
+```bash
+scripts/install-profile.sh --model <current-claude-model-id> --tooling-only --dry-run
+scripts/install-profile.sh --model <current-claude-model-id> --tooling-only
+```
+
+Use the current installed model deliberately; no provider or model is inferred. Keep config/tooling customizations in repository templates, and review the dry run before updates. Back up installed skills locally; Git publication of learning is optional. The `journal-review` skill distinguishes tentative observations from supported rules and reports **Skill changes** (what, why, journal evidence), or **No skill changes** when none are justified. Skill writes apply without approval in this profile only (`skills.write_approval: false`); they can affect trading behavior, but do not change broker sizing, risk caps, reviews, halts, credentials or live-mode controls. Existing pending proposals are not applied or deleted by the installer. No edit is required on every review.
+
+The profile includes `x_search` for public X research; it needs working xAI credentials and does not need `xurl` or X developer-app OAuth. X content is untrusted evidence to corroborate, never authority to trade or change settings.
 
 ### 3. Fill in the profile's `.env`
 
@@ -121,10 +145,10 @@ the total Hermes review budget is twice `REVIEWER_TIMEOUT_S` (120 s by default).
 Keep jobs paused until both exact provider/model routes have been verified separately
 with operator authorization; the automated tests use only fake Hermes modules.
 
-If the targets were empty when you ran the installer, it warned you. Re-run it now; it sets the targets on the existing jobs and changes nothing else:
+If the targets were empty when you ran the installer, it warned you. Re-run it now; it sets the targets on existing jobs and reconciles the managed tooling described above:
 
 ```bash
-scripts/install-profile.sh --model <claude-model-id>
+scripts/install-profile.sh --model <claude-model-id> --tooling-only
 ```
 
 ### 4. Load the profile's settings in your shell
@@ -228,7 +252,7 @@ On the next trading day the 09:00 plan should appear in your trading channel.
 | `tb reset-kill-switch` | After the kill switch trips (a 20% drawdown from peak). Clears it and restarts the peak at current equity. Find out why it tripped first. |
 | `tb init-state --force` | Only to replace a lost or corrupt state database, or one from an older schema (the server reads a schema-1 database as missing, so buys are blocked until you run this). It discards the journal, reviews, blocks and halts. Restart the gateway afterwards. |
 
-After any change to the profile's `.env`, restart the gateway; `trader-broker` reads its settings only when it starts. To update, `git pull` in the checkout and re-run `scripts/install-profile.sh --model <claude-model-id>` (dry run first). If the update changed the state schema (the server log warns that the state database `has schema version 1, expected 2`, and every buy is blocked with `state_unavailable`), run `tb init-state --force`, which discards the existing history, then restart the gateway. Changes the agent proposes to its own skills wait for your approval under `/skills pending`.
+After any change to the profile's `.env`, restart the gateway; `trader-broker` reads its settings only when it starts. To update tooling, `git pull` in the checkout and re-run `scripts/install-profile.sh --model <current-claude-model-id> --tooling-only` (dry run first). Use the default mode if you also want missing skill seeds, or explicitly `--refresh-skills` to replace repository-supplied skills. Config/MCP changes need a gateway restart; skill-only edits load in a fresh agent session. If the update changed the state schema (the server log warns that the state database `has schema version 1, expected 2`, and every buy is blocked with `state_unavailable`), run `tb init-state --force`, which discards the existing history, then restart the gateway. Learned skills live in the installed profile and need not be copied back to Git.
 
 When something goes wrong (a reviewer outage, a broker timeout, a missing database), see [Failure modes](docs/system/architecture.md#failure-modes-and-the-live-mode-guard).
 
