@@ -13,7 +13,7 @@ PR: (none)
 - [x] **Testing**
 - [x] **Documentation**
 - [x] **Review**
-- [ ] **Wrap-up**
+- [x] **Wrap-up**
 - [ ] **PR**
 - [ ] **Archive**
 
@@ -67,3 +67,6 @@ PR: (none)
 - 2026-11-04 00:26 - Cycle 3 fixes 63642bc: P39–P44 fixed, 600 passed; dispatching cycle-3 scoped re-review
 - 2026-11-04 00:31 - Review complete: round 3 clean, final checks pass (600 tests)
 - 2026-11-04 00:31 - Phase → Wrap-up
+- 2026-11-04 00:34 - Post-mortem written (drift 1H/7M/2L, 4 action items)
+- 2026-11-04 00:35 - Wrap-up: retro docs/specs/202611/hermes-trader-profile.md + AGENTS.md (fc440ae); post-mortem action 4 corrected (user_id routes don't deliver cron)
+- 2026-11-04 00:35 - Phase → PR (gate)
