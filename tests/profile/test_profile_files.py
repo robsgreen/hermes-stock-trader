@@ -126,19 +126,21 @@ def test_trader_broker_env_passes_through_every_setting(trader_broker: dict[str,
     assert all(value == f"${{{name}}}" for name, value in env.items())
 
 
-def test_toolsets_allow_only_trader_broker_web_memory_and_skills(config: dict[str, Any]) -> None:
+def test_toolsets_allow_only_trader_broker_web_x_search_memory_and_skills(
+    config: dict[str, Any],
+) -> None:
     platforms = config["platform_toolsets"]
 
     assert {"cli", "cron", "discord", "telegram"} <= set(platforms)
     for toolsets in platforms.values():
-        assert set(toolsets) == {"trader_broker", "web", "memory", "skills"}
+        assert set(toolsets) == {"trader_broker", "web", "x_search", "memory", "skills"}
 
 
 def test_terminal_code_file_and_browser_toolsets_are_disabled(config: dict[str, Any]) -> None:
     disabled = set(config["agent"]["disabled_toolsets"])
 
     assert {"terminal", "code_execution", "file", "browser"} <= disabled
-    assert not disabled & {"trader_broker", "web", "memory", "skills"}
+    assert not disabled & {"trader_broker", "web", "x_search", "memory", "skills"}
 
 
 def test_skill_changes_need_approval_and_memory_is_on(config: dict[str, Any]) -> None:

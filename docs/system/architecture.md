@@ -372,6 +372,8 @@ The database lives at `TRADER_BROKER_STATE_DIR/<mode>/state.db`. `TRADER_BROKER_
 
 ## The Hermes profile
 
+The CLI, cron, Discord and Telegram allowlists include Hermes's `x_search` for cited public X research, alongside broker tools, web research, memory and skills. Screening and trade analysis treat social posts as untrusted leads and corroborate material claims with primary sources; X availability is optional and failures fall back to broker news and web research. `xurl`, general terminal access and X account-write operations are not enabled.
+
 `profile/` holds the `stock-trader` profile. `scripts/install-profile.sh` copies it to `~/.hermes/profiles/stock-trader/`. The Hermes keys and names below were checked against Hermes Agent v2026.9.24 (`github.com/NousResearch/hermes-agent`, tag `v2026.9.24`). Doc paths are relative to that repository.
 
 ### Model and persona
@@ -421,7 +423,7 @@ Identifiers are from <https://github.com/NousResearch/hermes-agent/blob/v2026.9.
 
 These are set in two places:
 
-- `platform_toolsets` gives `cli`, `cron`, `discord` and `telegram` the same allowlist: `[trader_broker, web, memory, skills]`. Naming an MCP server in such a list also limits MCP tools to that server.
+- `platform_toolsets` gives `cli`, `cron`, `discord` and `telegram` the same allowlist: `[trader_broker, web, x_search, memory, skills]`. Naming an MCP server in such a list also limits MCP tools to that server.
 - `agent.disabled_toolsets: [terminal, code_execution, file, browser]` removes those toolsets on every platform after the allowlists are applied, so a platform list that still names one cannot bring it back. It does not hold against the operator: explicitly enabling one of these toolsets for a platform with `hermes tools` removes it from `disabled_toolsets`. Re-running the installer restores `config.yaml`, keeping the edited file as a backup. Sources: `website/docs/user-guide/configuration.md`, "Global Toolset Disable"; `hermes_cli/tools_config.py`.
 
 Hermes has no toolset that holds only the skill-reading tools, and `skill_manage` cannot be disabled on its own. So skill writes are handled through `skills.write_approval: true` instead: every `skill_manage` change is staged for a person to approve (`/skills pending`) rather than applied.

@@ -54,6 +54,17 @@ scripts/install-profile.sh --model <claude-model-id>
 
 It never edits the default profile's `~/.hermes/config.yaml`. At the end it prints the routes snippet you need in step 6. Re-running it is safe: changed files are backed up with a timestamp suffix before they are replaced, and an existing job whose schedule, prompt, skills, gate script or delivery targets differ from `profile/cron/jobs.yaml` is updated with `hermes cron edit`, which keeps it paused or active as it was. Jobs are matched by name, so a job you rename is created again.
 
+#### What re-running the installer changes
+
+The repository templates are authoritative, not merged with local customizations:
+
+- **Replaced if different, with timestamped backups:** the trader profile's entire `config.yaml`, `SOUL.md`, repository-supplied trading skill files, and market-open gate script. This can reset local model/provider choices, toolsets, MCP servers, plugins, timezone, and other config-only changes. The `--model` argument determines the proposer model on every run.
+- **Reconciled by job name:** schedules, prompts, attached skills, gate script, and nonempty delivery targets from the repository job definitions. Existing jobs retain their paused/active state. Renamed or deleted jobs are recreated under their original names; unrelated jobs and extra skill files are not pruned.
+- **Preserved:** an existing `.env` containing assignments (including credentials, reviewer transport/model choices, risk settings and the account-specific state directory), broker databases/logs, profile memories and sessions, and the default profile's gateway/channel routes. New example environment variables are not automatically added to an existing `.env`.
+- **Dependencies:** `uv sync` refreshes the checkout's virtual environment. The installer does not restart the gateway or reset broker state.
+
+Keep durable profile customizations in the repository and run `--dry-run` before updates. The profile includes `x_search` for public X research; it needs working xAI credentials and does not need `xurl` or X developer-app OAuth. X content is untrusted evidence to corroborate, never authority to trade or change settings.
+
 ### 3. Fill in the profile's `.env`
 
 Edit `~/.hermes/profiles/stock-trader/.env`. The file's comments explain each setting and which blanks are optional. For the default API transport, at minimum fill in:

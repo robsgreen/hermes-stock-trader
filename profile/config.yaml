@@ -89,6 +89,7 @@ mcp_servers:
 #   trader_broker - the MCP server above; Hermes names its runtime toolset `mcp-trader_broker`
 #                   and accepts the bare server name in platform lists ("Dynamic Toolsets").
 #   web           - web_search and web_extract (news and earnings dates).
+#   x_search      - public X discussion and cited catalyst leads (requires xAI auth).
 #   memory        - the persistent memory tool (lessons from the journal).
 #   skills        - skills_list, skill_view and skill_manage (see `skills.write_approval`).
 #   terminal, code_execution, file, browser - switched off below.
@@ -99,10 +100,10 @@ mcp_servers:
 # `hermes -p stock-trader chat`. Source: hermes_cli/tools_config.py `_get_platform_tools`
 # and website/docs/user-guide/features/cron.md ("Toolsets available to cron jobs").
 platform_toolsets:
-  cli: [trader_broker, web, memory, skills]
-  cron: [trader_broker, web, memory, skills]
-  discord: [trader_broker, web, memory, skills]
-  telegram: [trader_broker, web, memory, skills]
+  cli: [trader_broker, web, x_search, memory, skills]
+  cron: [trader_broker, web, x_search, memory, skills]
+  discord: [trader_broker, web, x_search, memory, skills]
+  telegram: [trader_broker, web, x_search, memory, skills]
 
 agent:
   # Removed on every platform, after the lists above, so a platform list that still names
