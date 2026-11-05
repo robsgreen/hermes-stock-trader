@@ -282,13 +282,17 @@ deployment check; tests stub Hermes and require no installed Hermes or credentia
 
 Each outcome carries a `verdict_name`: `approve`, `modify` or `reject` (`models.Verdict`), or `error`.
 
-**Decision rule** (`review.decide`). The buy is blocked when any of these holds:
+**Decision rule** (`review.decide`). Review is veto-based, not a vote requiring an approval. The buy is blocked when any of these holds:
 
-- any reviewer errored after its retry;
-- any reviewer rejected with high confidence;
-- no reviewer approved or modified.
+- the configured two-reviewer contract is incomplete (not two distinct reviewer outcomes, including empty, partial or duplicate results);
+- any reviewer errored after its retry, returned an invalid verdict, or supplied no verdict;
+- either reviewer rejected with high confidence, regardless of the other's verdict.
 
-Otherwise the safer changes from every verdict are applied:
+Low- and medium-confidence rejections are advisory, even when both reviewers reject. Each objection is included in `ReviewDecision.reasons` as a named nonblocking concern, returned with a placed buy and logged with the decision. The original verdicts, confidence and reasons remain in the stored outcomes. There is no additional setting.
+
+The shared system prompt asks independent reviewers to approve eligible, reasonable setups rather than demand perfection. For a rejection, confidence means confidence that the objection warrants blocking, not confidence in a price forecast. A high-confidence veto must identify a specific material problem backed by packet evidence: a materially false thesis, contradictions with the broker data, materially inadequate evidence for a central claim, or serious market/execution risk. A regime below SMA50, elevated RSI/extension or ordinary uncertainty alone does not automatically warrant a veto; approve/modify is preferred when existing caps or safe changes mitigate the concern. Hard-cap eligibility does not excuse material factual contradictions or serious execution issues. This calibration does not guarantee trade frequency or performance.
+
+Otherwise the safer changes from every verdict (including `approve` and nonblocking `reject`) are applied:
 
 1. The stop becomes the highest requested stop that is above the current stop and below entry.
 2. The size multiplier becomes the smallest requested one (at most 1).

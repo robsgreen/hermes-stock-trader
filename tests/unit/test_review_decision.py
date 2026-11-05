@@ -9,7 +9,14 @@ import pytest
 
 from trader_broker.config import Settings
 from trader_broker.models import Account, ReviewOutcome, ReviewVerdict, SizedOrder
-from trader_broker.review import ReviewDecision, Reviewer, ReviewPacket, decide, run_reviewers
+from trader_broker.review import (
+    SYSTEM_PROMPT,
+    ReviewDecision,
+    Reviewer,
+    ReviewPacket,
+    decide,
+    run_reviewers,
+)
 from trader_broker.risk import Caps, Portfolio, size_position
 
 CAPS = Caps.from_settings(Settings())
@@ -52,6 +59,17 @@ def _decide(*outcomes: ReviewOutcome, sized: SizedOrder | None = None) -> Review
     return decide(outcomes, sized or _sized(), PORTFOLIO, CAPS)
 
 
+def test_prompt_calibrates_veto_without_dismissing_material_contradictions() -> None:
+    assert "veto-based" in SYSTEM_PROMPT
+    assert "Approve eligible, reasonable setups" in SYSTEM_PROMPT
+    assert "confidence that the objection warrants blocking" in SYSTEM_PROMPT
+    assert "materially false thesis or contradictions with the packet's data" in SYSTEM_PROMPT
+    assert "serious market or execution risk" in SYSTEM_PROMPT
+    assert "below SMA50, elevated RSI/extension, or ordinary uncertainty alone" in SYSTEM_PROMPT
+    assert "Low/medium-confidence concerns are advisory" in SYSTEM_PROMPT
+    assert "Prefer approve/modify when the concern is mitigated" in SYSTEM_PROMPT
+
+
 def test_approve_and_approve_proceeds_unchanged() -> None:
     sized = _sized()
 
@@ -68,22 +86,73 @@ def test_approve_and_low_confidence_reject_proceeds() -> None:
     assert decision.proceed
 
 
-def test_high_confidence_reject_blocks_naming_the_reviewer() -> None:
-    decision = _decide(_outcome("openai", _verdict()), _outcome("xai", _verdict("reject", "high")))
+@pytest.mark.parametrize("rejecting_reviewer", ["openai", "xai"])
+@pytest.mark.parametrize("other_verdict", ["approve", "modify", "reject"])
+def test_high_confidence_reject_blocks_naming_the_reviewer(
+    rejecting_reviewer: str, other_verdict: str
+) -> None:
+    outcomes = [
+        _outcome(
+            name,
+            _verdict("reject", "high") if name == rejecting_reviewer else _verdict(other_verdict),
+        )
+        for name in ("openai", "xai")
+    ]
+    decision = _decide(*outcomes)
 
     assert not decision.proceed
     assert decision.order is None
-    assert decision.reasons == ["xai: rejected with high confidence: reject because"]
+    assert decision.reasons == [
+        f"{rejecting_reviewer}: rejected with high confidence: reject because"
+    ]
 
 
-def test_two_low_confidence_rejects_block() -> None:
+@pytest.mark.parametrize("first", ["low", "medium"])
+@pytest.mark.parametrize("second", ["low", "medium"])
+def test_two_hesitant_rejects_proceed_with_advisory_objections(first: str, second: str) -> None:
+    sized = _sized()
     decision = _decide(
-        _outcome("openai", _verdict("reject", "low")),
-        _outcome("xai", _verdict("reject", "low")),
+        _outcome("openai", _verdict("reject", first)),
+        _outcome("xai", _verdict("reject", second)),
+        sized=sized,
     )
 
+    assert decision.proceed
+    assert decision.order == sized
+    assert decision.reasons == [
+        f"openai: nonblocking {first}-confidence objection: reject because",
+        f"xai: nonblocking {second}-confidence objection: reject because",
+    ]
+
+
+@pytest.mark.parametrize(
+    "outcomes",
+    [
+        [],
+        [_outcome("openai", _verdict())],
+        [_outcome("openai", _verdict()), _outcome("openai", _verdict())],
+        [
+            _outcome("openai", _verdict()),
+            _outcome("xai", _verdict()),
+            _outcome("third", _verdict()),
+        ],
+    ],
+    ids=["empty", "partial", "duplicate", "extra"],
+)
+def test_incomplete_two_distinct_reviewer_contract_blocks(outcomes: list[ReviewOutcome]) -> None:
+    decision = _decide(*outcomes)
+
     assert not decision.proceed
-    assert decision.reasons == ["no reviewer approved (openai, xai rejected)"]
+    assert decision.reasons == ["review: expected outcomes from two distinct reviewers"]
+
+
+def test_missing_verdict_even_without_error_blocks() -> None:
+    # Normal construction already rejects this; defend the decision boundary too.
+    missing = ReviewOutcome.model_construct(reviewer="xai", verdict=None, error=None)
+    decision = _decide(_outcome("openai", _verdict()), missing)
+
+    assert not decision.proceed
+    assert decision.reasons == ["xai: review failed: missing verdict"]
 
 
 def test_an_error_blocks_naming_the_reviewer() -> None:
@@ -114,6 +183,27 @@ def test_raised_stop_and_multiplier_shrink_the_order() -> None:
     assert decision.order.risk_usd == Decimal("800.00")
     assert decision.reasons == ["openai: stop raised to 92.00", "xai: size multiplied by 0.5"]
     assert decision.order.bound_by == "review"
+
+
+@pytest.mark.parametrize("verdict", ["approve", "modify", "reject"])
+def test_safe_changes_apply_regardless_of_verdict_with_targets_advisory(verdict: str) -> None:
+    sized = _sized(entry="50", stop="40")
+    decision = _decide(
+        _outcome("openai", _verdict(verdict, "medium", stop_price=45, target_price=80)),
+        _outcome("xai", _verdict("reject", "low", size_multiplier=0.5)),
+        sized=sized,
+    )
+
+    assert decision.order is not None
+    assert decision.order.stop_price == Decimal("45.00")
+    assert decision.order.target_price == sized.target_price
+    assert decision.order.qty == 150
+    assert decision.order.risk_usd <= sized.risk_usd
+    assert decision.order.pct_equity <= float(CAPS.symbol_cap_pct)
+    assert decision.order.pct_equity_risk <= float(CAPS.risk_pct)
+    assert "openai: stop raised to 45.00" in decision.reasons
+    assert "xai: size multiplied by 0.5" in decision.reasons
+    assert "xai: nonblocking low-confidence objection: reject because" in decision.reasons
 
 
 def test_raised_stop_never_grows_the_order() -> None:

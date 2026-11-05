@@ -310,6 +310,25 @@ def test_kill_switch_blocks_buys(
     assert _buys(fake_broker) == []
 
 
+@pytest.mark.parametrize("names", [[], ["openai"], ["openai", "openai"]])
+def test_missing_or_duplicate_reviewers_cannot_clear_a_buy(
+    fake_broker: FakeBroker,
+    state_store: StateStore,
+    now: datetime,
+    fake_reviewer: Callable[..., Any],
+    names: list[str],
+) -> None:
+    service = _service(
+        fake_broker, state_store, now, *(fake_reviewer(name, APPROVE) for name in names)
+    )
+
+    result = service.propose_buy(_proposal())
+
+    _assert_blocked_and_recorded(result, state_store, "review")
+    assert _buys(fake_broker) == []
+    assert state_store.journal_entries() == []
+
+
 def test_reviewer_error_blocks_the_buy_and_names_the_reviewer(
     fake_broker: FakeBroker,
     state_store: StateStore,
@@ -374,22 +393,30 @@ def test_reviewers_raised_stop_and_size_multiplier_are_applied(
     assert (journal_entry.qty, journal_entry.stop_price) == (100, Decimal(97))
 
 
+@pytest.mark.parametrize("hesitant", [False, True], ids=["approved", "two-hesitant-rejects"])
 def test_final_order_is_checked_again_after_the_review(
     fake_broker: FakeBroker,
     state_store: StateStore,
     now: datetime,
     fake_reviewer: Callable[..., Any],
+    hesitant: bool,
 ) -> None:
+    vote = (
+        ReviewVerdict(verdict="reject", confidence="medium", reasons=["ordinary uncertainty"])
+        if hesitant
+        else APPROVE
+    )
+
     class SlowReviewer:
-        """Approves, but only once the session is 20 minutes from its close."""
+        """Returns a nonblocking verdict once the session is 20 minutes from its close."""
 
         name = "openai"
 
         def review(self, packet: ReviewPacket) -> ReviewOutcome:
             _near_close(fake_broker, now)
-            return ReviewOutcome(reviewer=self.name, verdict=APPROVE)
+            return ReviewOutcome(reviewer=self.name, verdict=vote)
 
-    service = _service(fake_broker, state_store, now, SlowReviewer(), fake_reviewer("xai", APPROVE))
+    service = _service(fake_broker, state_store, now, SlowReviewer(), fake_reviewer("xai", vote))
 
     result = service.propose_buy(_proposal())
 
