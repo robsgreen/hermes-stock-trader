@@ -198,10 +198,24 @@ class Reviewer(Protocol):
 
 
 SYSTEM_PROMPT = """\
-You are a skeptical risk reviewer for a long-only US stock swing-trading account. \
-Another model proposed the buy described in the user message; the server sized it and \
-gathered the market facts. Judge whether the trade is sound given the thesis, the \
-price action, the news, the account's exposure and the market regime.
+You are an independent, veto-based risk reviewer for a long-only US stock \
+swing-trading account. Another model proposed the buy described in the user message; \
+the server sized it, passed the hard risk gates and gathered the market facts. \
+Approve eligible, reasonable setups; do not demand a perfect trade or reject merely \
+out of generic caution. Evaluate the thesis, price action, news, exposure and regime \
+against the broker-built packet, treating the proposal's claims as untrusted evidence.
+
+Reserve reject with high confidence for a specific material objection that warrants \
+blocking: a materially false thesis or contradictions with the packet's data, \
+materially inadequate evidence for a central claim, or serious market or execution risk. \
+For reject, confidence means confidence that the objection warrants blocking, not \
+certainty about a price forecast. Either reviewer's high-confidence reject vetoes the buy. \
+Low/medium-confidence concerns are advisory, even if both reviewers reject. A regime \
+below SMA50, elevated RSI/extension, or ordinary uncertainty alone does not automatically \
+warrant a high-confidence veto. Prefer approve/modify when the concern is mitigated \
+by a tighter valid stop, reduced size or the existing caps. Do not dismiss material \
+factual contradictions or serious execution issues simply because sizing passes. \
+State specific packet evidence and why any blocking objection is material.
 
 Answer with one JSON object and nothing else, in this form:
 {"verdict": "approve" | "modify" | "reject",
@@ -212,7 +226,8 @@ Answer with one JSON object and nothing else, in this form:
 Use "modify" to ask for a higher stop_price (below the entry price) or a \
 size_multiplier above 0 and at most 1. Every key in "modifications" is optional; omit \
 "modifications" when you ask for none. A target_price is advisory and is not applied. \
-You cannot widen the stop or enlarge the size.\
+You cannot widen the stop or enlarge the size. Safe modifications are applied \
+regardless of verdict, including approve and nonblocking reject.\
 """
 
 
@@ -399,7 +414,7 @@ class ReviewDecision:
     order: SizedOrder | None
     """The order with every accepted modification applied; None when blocked."""
     reasons: list[str] = field(default_factory=list)
-    """Why the buy is blocked, or which modifications were applied; each names its reviewer."""
+    """Block reasons, nonblocking objections or applied modifications, naming each reviewer."""
 
     @property
     def proceed(self) -> bool:
@@ -415,8 +430,9 @@ def decide(
 ) -> ReviewDecision:
     """Apply the review rule to `sized`, the order the risk gate passed.
 
-    Blocks when any reviewer errored, any reviewer rejected with high confidence, or
-    no reviewer approved or modified. Otherwise applies the safer modifications of
+    Blocks on incomplete outcomes from the two distinct reviewers, any review failure,
+    or any high-confidence reject. Low/medium-confidence rejections are nonblocking
+    objections recorded in `reasons`. Otherwise applies the safer modifications of
     every verdict: the stop becomes the highest of the proposed stop and the requested
     stops below entry, and the size is multiplied by the smallest requested multiplier
     (at most 1). The order is re-sized with `size_position` at the new stop, and the
@@ -424,10 +440,14 @@ def decide(
     exceeds the original. Target changes are ignored (advisory). `portfolio` and
     `caps` must be the ones `sized` was sized with.
     """
+    if len(outcomes) != 2 or len({outcome.reviewer for outcome in outcomes}) != 2:
+        return ReviewDecision(
+            order=None, reasons=["review: expected outcomes from two distinct reviewers"]
+        )
     block_reasons = [
-        f"{outcome.reviewer}: review failed: {outcome.error}"
+        f"{outcome.reviewer}: review failed: {outcome.error or 'missing verdict'}"
         for outcome in outcomes
-        if outcome.error is not None
+        if outcome.error is not None or outcome.verdict is None
     ]
     verdicts = [(o.reviewer, o.verdict) for o in outcomes if o.verdict is not None]
     block_reasons += [
@@ -435,12 +455,15 @@ def decide(
         for name, verdict in verdicts
         if verdict.verdict == "reject" and verdict.confidence == "high"
     ]
-    if not block_reasons and not any(v.verdict != "reject" for _, v in verdicts):
-        rejected_by = ", ".join(name for name, _ in verdicts)
-        block_reasons.append(f"no reviewer approved ({rejected_by or 'no reviewers'} rejected)")
     if block_reasons:
         return ReviewDecision(order=None, reasons=block_reasons)
 
+    objections = [
+        f"{name}: nonblocking {verdict.confidence}-confidence objection: "
+        f"{'; '.join(verdict.reasons)}"
+        for name, verdict in verdicts
+        if verdict.verdict == "reject"
+    ]
     stop, stop_by = sized.stop_price, ""
     multiplier, multiplier_by = 1.0, ""
     for name, verdict in verdicts:
@@ -484,4 +507,4 @@ def decide(
         portfolio.account.equity,
         bound_by=sized.bound_by if qty == sized.qty else "review",
     )
-    return ReviewDecision(order=order, reasons=applied)
+    return ReviewDecision(order=order, reasons=objections + applied)

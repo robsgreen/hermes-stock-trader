@@ -13,6 +13,8 @@ The repository holds two things:
 
 The default limits: 3% of equity at risk per trade, 20% of equity per symbol, a halt on new buys after a 4% daily loss, and a kill switch at a 20% drawdown from peak. Long only, no margin, no options. They are set in the profile's `.env`; no agent tool can change them.
 
+Buy review is **high-confidence-veto**, not unanimous approval: either independent reviewer's high-confidence rejection blocks the trade. Low/medium-confidence objections are recorded and logged but do not block, even if both reviewers reject. Both distinct reviewers must still return valid verdicts; missing, invalid or failed reviews fail closed. Reviewers are asked to approve reasonable eligible setups and reserve a veto for specific material thesis/data contradictions, inadequate central evidence or serious market/execution risk—not generic caution, ordinary uncertainty, a below-SMA50 regime or elevated RSI alone. Safe stop/size changes apply on any verdict; targets stay advisory, and all hard caps and final risk checks remain unchanged. No extra setting is needed, and this policy makes no promise about trade frequency or performance.
+
 How it works in detail: [docs/system/architecture.md](docs/system/architecture.md).
 
 ## Requirements

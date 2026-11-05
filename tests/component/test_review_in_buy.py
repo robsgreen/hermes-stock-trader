@@ -46,7 +46,25 @@ EPOCH = datetime(2000, 1, 1, tzinfo=UTC)
             verdict("approve"), verdict("reject", "high"), "blocked", id="approve-high-reject"
         ),
         pytest.param(
-            verdict("reject", "low"), verdict("reject", "low"), "blocked", id="two-low-rejects"
+            verdict("reject", "low"), verdict("reject", "low"), "placed", id="two-low-rejects"
+        ),
+        pytest.param(
+            verdict("reject", "low"), verdict("reject", "medium"), "placed", id="low-medium-rejects"
+        ),
+        pytest.param(
+            verdict("reject", "medium"), verdict("reject", "low"), "placed", id="medium-low-rejects"
+        ),
+        pytest.param(
+            verdict("reject", "medium"),
+            verdict("reject", "medium"),
+            "placed",
+            id="two-medium-rejects",
+        ),
+        pytest.param(
+            verdict("reject", "high"), verdict("modify"), "blocked", id="high-reject-modify"
+        ),
+        pytest.param(
+            verdict("reject", "high"), verdict("reject", "high"), "blocked", id="two-high-rejects"
         ),
     ],
 )
@@ -55,13 +73,15 @@ def test_verdict_combinations_decide_the_buy(
     fake_reviewer: Callable[..., Reviewer],
     fake_broker: FakeBroker,
     state_store: StateStore,
+    caplog: pytest.LogCaptureFixture,
     first: ReviewVerdict,
     second: ReviewVerdict,
     status: str,
 ) -> None:
     server = make_server([fake_reviewer("openai", first), fake_reviewer("xai", second)])
 
-    result = call_tool(server, "propose_buy", **buy_arguments())
+    with caplog.at_level("INFO", logger="trader_broker.service"):
+        result = call_tool(server, "propose_buy", **buy_arguments())
 
     assert result["status"] == status
     assert [(r["reviewer"], r["verdict"]) for r in result["reviews"]] == [
@@ -72,6 +92,16 @@ def test_verdict_combinations_decide_the_buy(
     assert len(buys) == (1 if status == "placed" else 0)
     [review] = state_store.reviews_since(EPOCH)
     assert review.decision == ("proceed" if status == "placed" else "block")
+    assert [outcome.verdict for outcome in review.outcomes] == [first, second]
+    if status == "placed":
+        objections = [
+            f"{name}: nonblocking {v.confidence}-confidence objection: {'; '.join(v.reasons)}"
+            for name, v in (("openai", first), ("xai", second))
+            if v.verdict == "reject"
+        ]
+        assert result["reasons"] == objections
+        assert all(reason in caplog.text for reason in objections)
+        assert review.final_order is not None and review.final_order.qty == 200
     if status == "blocked":
         assert (
             call_tool(server, "get_risk_status")["recent_blocks"][0]["reasons"]
@@ -201,17 +231,19 @@ def test_reviewer_timeout_blocks_buys_but_not_exits(
         ),
     ],
 )
+@pytest.mark.parametrize("review_verdict", ["approve", "modify", "reject"])
 def test_reviewer_changes_only_make_the_order_safer(
     make_server: ServerFactory,
     fake_reviewer: Callable[..., Reviewer],
     fake_broker: FakeBroker,
+    review_verdict: str,
     overrides: dict[str, Any],
     changes: list[dict[str, Any]],
     qty: int,
     stop: int,
 ) -> None:
     reviewers = [
-        fake_reviewer(name, verdict("modify", **change) if change else APPROVE)
+        fake_reviewer(name, verdict(review_verdict, **change))
         for name, change in zip(("openai", "xai"), changes, strict=True)
     ]
     server = make_server(reviewers)
