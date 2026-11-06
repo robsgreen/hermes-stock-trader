@@ -134,7 +134,10 @@ TRADER_HERMES_HOME=/home/hermes/.hermes
 Use the actual Hermes interpreter, not the broker's Python 3.12 `.venv`: it must
 already import `agent.auxiliary_client` and `dotenv` without `PYTHONPATH`. The auth
 home must be an absolute existing directory owned by the operator. No default home
-or interpreter is guessed. For Hermes slots, the broker does not require or forward
+is guessed. Hermes replaces and prunes its managed environments on update, so if
+`TRADER_HERMES_PYTHON` no longer exists the broker uses the newest managed environment
+under `TRADER_HERMES_HOME/installs/*/environments/*/venv` instead (checked on every
+review). Re-point the setting when convenient. For Hermes slots, the broker does not require or forward
 `OPENAI_API_KEY`/`XAI_API_KEY`; `BASE_URL` and `API_KEY_ENV` apply only to API slots.
 The helper loads the selected home's `.env` and native resolver/auth pools; external
 secret-manager commands are not bootstrapped by the helper. Only `openai-codex` and

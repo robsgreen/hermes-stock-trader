@@ -50,6 +50,33 @@ class ConfigError(Exception):
     """The environment does not describe a configuration the server may start with."""
 
 
+def _is_executable_file(path: Path) -> bool:
+    return path.is_absolute() and path.is_file() and os.access(path, os.X_OK)
+
+
+def resolve_hermes_python(configured: Path | None, home: Path | None) -> Path | None:
+    """The Hermes interpreter to run inference with, or None when none can be found.
+
+    Hermes replaces and prunes its managed environments (`installs/*/environments/*/venv`)
+    on update, so a configured path goes stale. Use it while it still exists; otherwise
+    fall back to the newest managed environment under `home` that has the inference
+    dependencies. The fallback is looked up on every call, never cached.
+    """
+    if configured is not None and _is_executable_file(configured):
+        return configured
+    if home is None:
+        return None
+    candidates = []
+    for python in home.glob("installs/*/environments/*/venv/bin/python3"):
+        venv = python.parent.parent
+        if _is_executable_file(python) and any(venv.glob("lib/python3*/site-packages/dotenv")):
+            try:
+                candidates.append((venv.stat().st_mtime, python))
+            except OSError:
+                continue
+    return max(candidates)[1] if candidates else None
+
+
 class ReviewerSettings(BaseModel):
     """One reviewer, reached through a direct API or tool-free native Hermes inference."""
 
@@ -195,17 +222,14 @@ class Settings(BaseModel):
             if reviewer.transport == "hermes":
                 if reviewer.provider not in {"openai-codex", "xai"}:
                     problems.append(f"{prefix}_PROVIDER must be openai-codex or xai for Hermes")
-                python = self.hermes_python
-                if (
-                    python is None
-                    or not python.is_absolute()
-                    or not python.is_file()
-                    or not os.access(python, os.X_OK)
-                ):
-                    problems.append("TRADER_HERMES_PYTHON must be an absolute executable file")
                 home = self.hermes_home
                 if home is None or not home.is_absolute() or not home.is_dir():
                     problems.append("TRADER_HERMES_HOME must be an absolute existing directory")
+                elif resolve_hermes_python(self.hermes_python, home) is None:
+                    problems.append(
+                        "no Hermes interpreter: TRADER_HERMES_PYTHON is not an executable file "
+                        "and no managed environment was found under TRADER_HERMES_HOME"
+                    )
             elif reviewer.api_key is None:
                 problems.append(
                     f"{reviewer.api_key_env} (named by {prefix}_API_KEY_ENV) is not set"
