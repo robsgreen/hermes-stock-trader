@@ -43,6 +43,7 @@ from alpaca.trading.requests import (
     GetOrdersRequest,
     GetPortfolioHistoryRequest,
 )
+from pydantic import ValidationError
 
 from trader_broker.brokers.base import Broker, BrokerError, RateLimitError, UnknownResultError
 from trader_broker.config import ConfigError, Settings
@@ -75,6 +76,8 @@ _HISTORY_START = datetime(2016, 1, 1, tzinfo=UTC)
 """Earlier than any Alpaca market data, so a newest-first query with a limit gets the
 latest bars however far back they reach."""
 _FILLS_PAGE_SIZE = 100
+_NO_ACCOUNT_ID = uuid.UUID(int=0)
+"""Stands in for the `account_id` Alpaca leaves out of some fill rows; nothing reads it."""
 _OPEN_ORDER_SCAN = 500
 """Fewest orders each of the two reads behind `get_orders("open")` asks for (Alpaca's
 maximum page size)."""
@@ -458,7 +461,7 @@ class AlpacaBroker:
         activities = self._trading.get("/account/activities/FILL", params)
         if not isinstance(activities, list):
             raise ValueError(f"expected a list of activities, got {type(activities).__name__}")
-        return [_fill(TradeActivity(**_json_object(activity))) for activity in activities]
+        return [_fill_from_row(index, activity) for index, activity in enumerate(activities)]
 
 
 def _take_over_retries_and_timeouts(client: RESTClient) -> None:
@@ -618,6 +621,27 @@ def _mover(mover: SdkMover) -> Mover:
         # Alpaca reports the change in percent (5.0 for up 5%).
         change_pct=mover.percent_change / 100,
     )
+
+
+def _fill_from_row(index: int, row: object) -> Fill:
+    """One `FILL` activity row as a `Fill`.
+
+    Alpaca sometimes leaves `account_id` out of a row, which `TradeActivity` demands but
+    nothing here uses, so only that field is filled in. Any other missing or malformed
+    field raises, naming the row and field but not the values: a dropped sell fill would
+    give settlement a wrong exit price.
+    """
+    fields = dict(_json_object(row))
+    if fields.get("account_id") is None:
+        fields["account_id"] = _NO_ACCOUNT_ID
+    try:
+        return _fill(TradeActivity(**fields))
+    except ValidationError as exc:
+        problems = ", ".join(
+            f"{'.'.join(str(part) for part in err['loc'])} ({err['type']})"
+            for err in exc.errors(include_input=False)
+        )
+        raise ValueError(f"fill row {index} is unusable: {problems}") from None
 
 
 def _fill(activity: TradeActivity) -> Fill:

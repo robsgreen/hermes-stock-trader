@@ -1,11 +1,16 @@
+import uuid
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
 import pytest
+from alpaca.trading.client import TradingClient
 
+from trader_broker.brokers.alpaca import AlpacaBroker
 from trader_broker.brokers.fake import FakeBroker
 from trader_broker.config import Settings
+from trader_broker.journal import settle_trades
 from trader_broker.models import Bar, BracketOrderRequest, Order
 from trader_broker.service import TraderService, new_client_order_id
 from trader_broker.state import StateStore
@@ -203,6 +208,55 @@ def test_exit_price_is_the_qty_weighted_average_of_the_sell_fills(
     assert settled is not None
     assert settled.exit_price == Decimal(96)  # (40 * 105 + 60 * 90) / 100
     assert settled.closed_at == EXIT_AT
+
+
+def test_stop_out_closes_when_alpaca_fill_rows_lack_an_account_id(
+    fake_broker: FakeBroker, state_store: StateStore, now: datetime
+) -> None:
+    _, journal_id = _buy(fake_broker, state_store)
+    trading = MagicMock(spec=TradingClient)
+    when = EXIT_AT
+    # Two partial executions of one stop order, in the live reply shape: no account_id.
+    trading.get.return_value = [
+        {
+            "id": f"{when:%Y%m%d%H%M%S}000001::{uuid.uuid4()}",
+            "activity_type": "FILL",
+            "transaction_time": when.isoformat(),
+            "type": "partial_fill",
+            "price": "90",
+            "qty": "40",
+            "side": "sell",
+            "symbol": "XYZ",
+            "leaves_qty": "60",
+            "order_id": str(uuid.uuid4()),
+            "cum_qty": "40",
+            "order_status": "partially_filled",
+            "status": "partially_filled",
+        },
+        {
+            "id": f"{when:%Y%m%d%H%M%S}000002::{uuid.uuid4()}",
+            "activity_type": "FILL",
+            "transaction_time": (when + timedelta(seconds=5)).isoformat(),
+            "type": "fill",
+            "price": "88",
+            "qty": "60",
+            "side": "sell",
+            "symbol": "XYZ",
+            "leaves_qty": "0",
+            "order_id": str(uuid.uuid4()),
+            "cum_qty": "100",
+            "order_status": "filled",
+        },
+    ]
+    alpaca = AlpacaBroker(trading, MagicMock(), MagicMock(), MagicMock())
+
+    settle_trades(state_store, alpaca, positions=[], orders=fake_broker.get_orders("all"), now=now)
+
+    closed = state_store.journal_entry(journal_id)
+    assert closed is not None
+    assert closed.status == "closed"
+    assert closed.exit_price == Decimal("88.80")  # (40 * 90 + 60 * 88) / 100, no double count
+    assert closed.closed_at == when + timedelta(seconds=5)
 
 
 def test_trade_closed_today_settles_once_spys_close_is_published(

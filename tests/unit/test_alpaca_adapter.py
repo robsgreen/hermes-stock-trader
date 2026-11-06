@@ -425,6 +425,74 @@ def test_fills_are_read_page_by_page_until_a_short_page(
     assert second[1]["page_token"] == pages[0][-1]["id"]
 
 
+def _live_fill_json(when: datetime, **fields: Any) -> dict[str, Any]:
+    """A fill row shaped like the live replies that carry no `account_id`."""
+    row = _fill_json(0, when)
+    row["id"] = f"{when:%Y%m%d%H%M%S}{when.microsecond:06d}::{uuid.uuid4()}"
+    del row["account_id"]
+    row.update(fields)
+    return row
+
+
+def test_fills_without_an_account_id_still_parse(broker: AlpacaBroker, trading: MagicMock) -> None:
+    since = datetime(2026, 11, 5, 14, 0, tzinfo=UTC)
+    partial = _live_fill_json(
+        since + timedelta(minutes=1),
+        type="partial_fill",
+        status="partially_filled",
+        qty="3",
+        price="410.25",
+        symbol="MSFT",
+        leaves_qty="2",
+        cum_qty="3",
+    )
+    final = _live_fill_json(
+        since + timedelta(minutes=2), qty="2", price="410.5", symbol="MSFT", cum_qty="5"
+    )
+    trading.get.return_value = [partial, final]
+
+    fills = broker.get_fills(since)
+
+    assert [(f.id, f.order_id, f.symbol, f.side, f.qty, f.price) for f in fills] == [
+        (row["id"], row["order_id"], "MSFT", "sell", int(row["qty"]), Decimal(row["price"]))
+        for row in (partial, final)
+    ]
+    assert [f.filled_at for f in fills] == [
+        since + timedelta(minutes=1),
+        since + timedelta(minutes=2),
+    ]
+
+
+def test_a_fill_row_missing_a_needed_field_fails_the_read(
+    broker: AlpacaBroker, trading: MagicMock
+) -> None:
+    since = datetime(2026, 11, 5, 14, 0, tzinfo=UTC)
+    good = _live_fill_json(since + timedelta(minutes=1))
+    broken = _live_fill_json(since + timedelta(minutes=2))
+    del broken["price"]
+    trading.get.return_value = [good, broken]
+
+    with pytest.raises(BrokerError, match=r"fill row 1.*price") as failed:
+        broker.get_fills(since)
+    # The message names the field, never the row's values.
+    assert "101.5" not in str(failed.value)
+
+
+def test_page_token_is_the_raw_last_row_id_when_rows_lack_an_account_id(
+    broker: AlpacaBroker, trading: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(alpaca_module, "_FILLS_PAGE_SIZE", 2)
+    since = datetime(2026, 11, 5, 14, 0, tzinfo=UTC)
+    rows = [_live_fill_json(since + timedelta(seconds=n)) for n in range(5)]
+    trading.get.side_effect = [rows[0:2], rows[2:4], rows[4:5]]
+
+    fills = broker.get_fills(since)
+
+    assert [fill.id for fill in fills] == [row["id"] for row in rows]
+    params = [call.args[1] for call in trading.get.call_args_list]
+    assert [p.get("page_token") for p in params] == [None, rows[1]["id"], rows[3]["id"]]
+
+
 def test_portfolio_history_maps_daily_equity_from_a_new_york_start(
     broker: AlpacaBroker, trading: MagicMock
 ) -> None:
