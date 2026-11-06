@@ -23,7 +23,7 @@ from openai import OpenAI, OpenAIError
 from pydantic import AwareDatetime, BaseModel, ConfigDict, ValidationError
 
 from trader_broker import indicators
-from trader_broker.config import ConfigError, ReviewerSettings, Settings
+from trader_broker.config import ConfigError, ReviewerSettings, Settings, resolve_hermes_python
 from trader_broker.models import (
     Bar,
     NewsItem,
@@ -235,7 +235,7 @@ def build_reviewer(reviewer: ReviewerSettings, settings: Settings) -> Reviewer:
     """Choose the operator-configured transport without resolving credentials here."""
     if reviewer.transport == "hermes":
         settings.require_reviewers()
-        assert settings.hermes_python is not None and settings.hermes_home is not None
+        assert settings.hermes_home is not None
         assert reviewer.model is not None
         return HermesReviewer(
             reviewer.provider,
@@ -261,7 +261,7 @@ class HermesReviewer:
     """Tool-free inference in an operator-selected Hermes interpreter, not an agent loop."""
 
     def __init__(
-        self, provider: str, model: str, python: Path, home: Path, timeout_s: float
+        self, provider: str, model: str, python: Path | None, home: Path, timeout_s: float
     ) -> None:
         self._provider = provider
         self._model = model
@@ -282,6 +282,10 @@ class HermesReviewer:
             "system_prompt": SYSTEM_PROMPT,
             "timeout_s": self._timeout_s,
         }
+        # Resolved per review: Hermes updates replace and prune its managed environments.
+        python = resolve_hermes_python(self._python, self._home)
+        if python is None:
+            return ReviewOutcome(reviewer=self.name, error="Hermes interpreter not found")
         # Deliberate allowlist: no profile provider keys, Python import overrides,
         # proxy overrides or HERMES_PROFILE can cross this boundary.
         env = {key: os.environ[key] for key in ("HOME", "PATH", "LANG") if key in os.environ}
@@ -294,7 +298,7 @@ class HermesReviewer:
                 break
             try:
                 result = subprocess.run(
-                    [str(self._python), str(Path(__file__).with_name("hermes_inference.py"))],
+                    [str(python), str(Path(__file__).with_name("hermes_inference.py"))],
                     input=json.dumps(request),
                     text=True,
                     capture_output=True,

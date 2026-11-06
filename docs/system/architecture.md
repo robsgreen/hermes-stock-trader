@@ -249,7 +249,11 @@ Model ids have no default. `REVIEWER_n_MODEL` must be set, or `serve` refuses to
 rule. Its provider must be explicitly `openai-codex` (Codex OAuth) or `xai` (API-key
 authentication). The operator supplies absolute `TRADER_HERMES_PYTHON` (an executable
 with native Hermes imports) and `TRADER_HERMES_HOME` (an existing auth-home directory,
-normally the default `/home/hermes/.hermes`). Startup checks paths and model ids but
+normally the default `/home/hermes/.hermes`). Hermes updates prune managed
+environments, so each review resolves the interpreter: the configured path if it still
+exists, else the newest `installs/*/environments/*/venv/bin/python3` under the home that
+has `dotenv`; none found gives the reviewer error `Hermes interpreter not found`.
+Startup checks paths and model ids but
 does not resolve auth or call inference. Hermes slots need no API key in the broker
 environment; API slots retain their existing requirements. `BASE_URL` and
 `API_KEY_ENV` do not override a Hermes route.
